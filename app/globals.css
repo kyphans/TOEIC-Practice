@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #0047ab; /* Strong blue */
+  --primary-light: #4169e1; /* Royal blue */
+  --primary-dark: #00008b; /* Dark blue */
+  --secondary: #ff6b6b; /* Secondary color for hover states */
+  --background: #ffffff;
+  --foreground: #000000;
+  --accent: #ff6b6b; /* Accent color for important elements */
+
+  /* Difficulty colors */
+  --easy: #2e8b57; /* Sea green */
+  --medium: #0047ab; /* Our primary blue */
+  --hard: #d14836; /* Tomato red */
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  a:hover {
+    @apply text-[var(--secondary)];
+  }
+}
+
+/* Brutalist design elements - simplified without shadows and hover border changes */
+.brutalist-card {
+  border: 4px solid black;
+  transition: all 0.2s ease;
+}
+
+.brutalist-button {
+  background-color: var(--primary);
+  color: white;
+  border: 4px solid black;
+  padding: 0.5rem 1.5rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+}
+
+.brutalist-button:hover {
+  background-color: var(--secondary);
+}
+
+.brutalist-input {
+  border: 4px solid black;
+  padding: 0.5rem 1rem;
+}
+
+.brutalist-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.brutalist-header {
+  font-size: 2.25rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 768px) {
+  .brutalist-header {
+    font-size: 3.75rem;
+  }
+}
+
+.brutalist-container {
+  border: 4px solid black;
+  padding: 1.5rem;
+  background-color: white;
+}
+
+/* Difficulty color coding */
+.difficulty-easy {
+  background-color: var(--easy);
+  color: white;
+}
+
+.difficulty-medium {
+  background-color: var(--medium);
+  color: white;
+}
+
+.difficulty-hard {
+  background-color: var(--hard);
+  color: white;
+}
+
+/* Test answer styling */
+.test-option {
+  border: 4px solid black;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.test-option:hover {
+  background-color: var(--secondary);
+  color: white;
+}
+
+.test-option.selected {
+  background-color: var(--primary);
+  color: white;
+}
+
+.test-option.selected:hover {
+  background-color: var(--secondary);
+}
+
+/* Sidebar menu styling */
+.sidebar-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  font-weight: bold;
+  border: 4px solid black;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-menu-item:hover {
+  background-color: var(--secondary);
+  color: white;
+}
+
+.sidebar-menu-item.active {
+  background-color: var(--primary);
+  color: white;
+}
+
