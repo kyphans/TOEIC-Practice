@@ -1,12 +1,12 @@
 "use client"
 
-import { useAuth } from "@/components/auth-provider"
+import { useUser } from "@clerk/nextjs"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { BookOpen, TrendingUp, Clock } from "lucide-react"
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user } = useUser()
 
   // Mock data for dashboard
   const recentTests = [
@@ -39,7 +39,7 @@ export default function Dashboard() {
     <div className='space-y-8'>
       <div className='brutalist-container'>
         <h1 className='text-3xl font-black mb-4'>
-          Welcome back, {user?.name}!
+          Welcome back, {user?.firstName}!
         </h1>
         <p className='text-lg'>Continue your TOEIC practice journey.</p>
       </div>

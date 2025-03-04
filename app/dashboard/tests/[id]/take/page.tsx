@@ -1,71 +1,35 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, Radio } from "@/components/ui/radio"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
+import { AlertCircle } from "lucide-react"
+import { getMockTest } from "@/app/mock-questions"
+import { useAnswersStore } from "@/app/store/answers"
+import { useTimerStore } from "@/app/store/timer"
 
 export default function TakeTest({ params }: { params: { id: string } }) {
   const router = useRouter()
   const testId = params.id
+  const { setAnswer, getAnswersByTestId, initAnswers, clearAnswers } = useAnswersStore()
+  const { timeLeft, setTimeLeft, decrementTime, clearTimer } = useTimerStore()
 
-  // State for the test
-  const [currentSection, setCurrentSection] = useState(0)
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [timeLeft, setTimeLeft] = useState(7200) // 120 minutes in seconds
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  // Get test data
+  const test = getMockTest(parseInt(testId))
 
-  // Mock test data - in a real app, you would fetch this from an API
-  const test = {
-    id: Number.parseInt(testId),
-    name: `TOEIC Test ${testId}`,
-    sections: [
-      {
-        name: "Listening",
-        time: 2700, // 45 minutes in seconds
-        questions: [
-          {
-            id: "L1",
-            type: "photo",
-            question:
-              "Look at the picture and listen to the four statements. Choose the statement that best describes the picture.",
-            image: "/placeholder.svg?height=300&width=400",
-            options: ["A", "B", "C", "D"],
-          },
-          {
-            id: "L2",
-            type: "audio",
-            question:
-              "Listen to the question and the three responses. Choose the response that best answers the question.",
-            options: ["A", "B", "C"],
-          },
-          // More questions would be added here
-        ],
-      },
-      {
-        name: "Reading",
-        time: 4500, // 75 minutes in seconds
-        questions: [
-          {
-            id: "R1",
-            type: "sentence",
-            question: "The company's profits _____ by 15% in the last quarter.",
-            options: ["increase", "increased", "are increasing", "have been increased"],
-          },
-          {
-            id: "R2",
-            type: "sentence",
-            question: "Despite the economic downturn, the company managed to _____ its market position.",
-            options: ["maintain", "maintaining", "maintained", "to maintain"],
-          },
-          // More questions would be added here
-        ],
-      },
-    ],
-  }
+  useEffect(() => {
+    // Khởi tạo answers từ localStorage nếu có
+    initAnswers(testId)
+
+    // Khởi tạo timer nếu chưa có
+    if (!timeLeft[testId]) {
+      setTimeLeft(testId, 7200) // 120 minutes in seconds
+    }
+  }, [testId, initAnswers, timeLeft, setTimeLeft])
+
+  const answers = getAnswersByTestId(testId)
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -77,74 +41,56 @@ export default function TakeTest({ params }: { params: { id: string } }) {
   // Handle timer
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          handleSubmitTest()
-          return 0
-        }
-        return prev - 1
-      })
+      if (timeLeft[testId] <= 1) {
+        clearInterval(timer)
+        handleSubmitTest()
+      } else {
+        decrementTime(testId)
+      }
     }, 1000)
 
     return () => clearInterval(timer)
+  }, [testId, timeLeft, decrementTime])
+
+  // Handle scroll to question on hash change
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash
+      if (hash) {
+        const element = document.querySelector(hash)
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" })
+        }
+      }
+    }
+
+    // Handle initial hash if exists
+    handleHashChange()
+
+    // Add hash change listener
+    window.addEventListener("hashchange", handleHashChange)
+    return () => window.removeEventListener("hashchange", handleHashChange)
   }, [])
 
-  // Current section and question data
-  const currentSectionData = test.sections[currentSection]
-  const currentQuestionData = currentSectionData.questions[currentQuestion]
-
-  // Navigation functions
-  const goToPreviousQuestion = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1)
-    } else if (currentSection > 0) {
-      setCurrentSection(currentSection - 1)
-      setCurrentQuestion(test.sections[currentSection - 1].questions.length - 1)
-    }
-  }
-
-  const goToNextQuestion = () => {
-    if (currentQuestion < currentSectionData.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1)
-    } else if (currentSection < test.sections.length - 1) {
-      setCurrentSection(currentSection + 1)
-      setCurrentQuestion(0)
-    }
-  }
-
   // Handle answer selection
-  const handleSelectAnswer = (answer: string) => {
-    setAnswers({
-      ...answers,
-      [currentQuestionData.id]: answer,
-    })
+  const handleSelectAnswer = (questionId: string, answer: string) => {
+    setAnswer(`${testId}-${questionId}`, answer)
   }
 
   // Handle test submission
   const handleSubmitTest = () => {
-    setIsSubmitting(true)
+    // Calculate a mock score
+    const totalQuestions = test.sections.reduce((total, section) => total + section.questions.length, 0)
+    const answeredQuestions = Object.keys(answers).length
+    const mockScore = Math.floor((answeredQuestions / totalQuestions) * 990)
 
-    // In a real app, you would send the answers to your backend
-    setTimeout(() => {
-      // Calculate a mock score
-      const totalQuestions = test.sections.reduce((total, section) => total + section.questions.length, 0)
-      const answeredQuestions = Object.keys(answers).length
-      const mockScore = Math.floor((answeredQuestions / totalQuestions) * 990)
+    // Clear answers and timer
+    clearAnswers()
+    clearTimer(testId)
 
-      // Navigate to results page
-      router.push(`/dashboard/tests/${testId}/results?score=${mockScore}`)
-    }, 1500)
+    // Navigate to results page
+    router.push(`/dashboard/tests/${testId}/results?score=${mockScore}`)
   }
-
-  // Calculate progress
-  const totalQuestions = test.sections.reduce((total, section) => total + section.questions.length, 0)
-  const currentQuestionNumber =
-    test.sections.slice(0, currentSection).reduce((total, section) => total + section.questions.length, 0) +
-    currentQuestion +
-    1
-
-  const progressPercentage = (currentQuestionNumber / totalQuestions) * 100
 
   return (
     <div className='min-h-screen flex flex-col bg-white'>
@@ -152,102 +98,98 @@ export default function TakeTest({ params }: { params: { id: string } }) {
       <header className='bg-primary p-4 text-white'>
         <div className='container mx-auto flex justify-between items-center'>
           <h1 className='text-2xl font-black'>
-            {test.name} - {currentSectionData.name} Section
+            {test.name}
           </h1>
           <div className='flex items-center gap-4'>
             <div className='brutalist-card bg-white text-black p-2 flex items-center'>
               <AlertCircle className='mr-2 h-5 w-5 text-primary' />
               <span className='font-bold'>
-                Time Left: {formatTime(timeLeft)}
+                Time Left: {formatTime(timeLeft[testId] || 0)}
               </span>
             </div>
             <Button
               onClick={handleSubmitTest}
-              className='brutalist-button bg-white text-primary'
-              disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit Test'}
+              className='brutalist-button bg-white text-primary'>
+              Submit Test
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Progress bar */}
-      <div className='w-full bg-gray-200 h-4 border-4 border-black mt-1'>
-        <div
-          className='bg-[#2e8b57] h-full'
-          style={{ width: `${progressPercentage}%` }}></div>
-      </div>
-
       {/* Question content */}
-      <div className='flex-1 container mx-auto py-8 px-4'>
-        <div className='brutalist-container'>
-          <div className='mb-6'>
-            <h2 className='text-xl font-bold mb-2'>
-              Question {currentQuestionNumber} of {totalQuestions}
+      <div className='container mx-auto py-8 px-4'>
+        {test.sections.map((section, sectionIndex) => (
+          <div key={sectionIndex} className='mb-12'>
+            <h2 className='text-2xl font-black uppercase border-b-4 border-black pb-2 mb-6'>
+              {section.name} Section
             </h2>
-            <p className='text-lg'>{currentQuestionData.question}</p>
-          </div>
+            <div className='space-y-12'>
+              {section.questions.map((question) => (
+                <div 
+                  key={question.id} 
+                  id={`question${question.id}`}
+                  className='brutalist-container p-6 scroll-mt-20'
+                >
+                  <div className='mb-6'>
+                    <h3 className='text-xl font-bold mb-4'>
+                      Question {question.id}
+                    </h3>
+                    <p className='text-lg'>{question.question}</p>
+                  </div>
 
-          {currentQuestionData.type === 'photo' && (
-            <div className='mb-6'>
-              <img
-                src={currentQuestionData.image || '/placeholder.svg'}
-                alt='Question image'
-                className='border-4 border-black max-w-full h-auto'
-              />
-            </div>
-          )}
+                  {question.type === 'photo' && question.image && (
+                    <div className='mb-6 flex justify-center'>
+                      <img
+                        src={question.image}
+                        alt='Question image'
+                        className='border-4 border-black max-w-[400px] h-auto'
+                      />
+                    </div>
+                  )}
 
-          <div className='space-y-4 mb-8'>
-            <RadioGroup
-              value={answers[currentQuestionData.id] || ''}
-              onValueChange={handleSelectAnswer}
-              className='space-y-4'>
-              {currentQuestionData.options.map((option, index) => (
-                <div
-                  key={index}
-                  className={`test-option ${
-                    answers[currentQuestionData.id] === option ? 'selected' : ''
-                  }`}
-                  onClick={() => handleSelectAnswer(option)}>
-                  <div className='flex items-center'>
-                    <Radio
-                      id={`option-${index}`}
-                      value={option}
-                      className='mr-3'
-                    />
-                    <Label
-                      htmlFor={`option-${index}`}
-                      className='cursor-pointer font-bold text-lg w-full'>
-                      {option}
-                    </Label>
+                  <div className='space-y-4'>
+                    <RadioGroup
+                      value={answers[question.id.toString()] || ''}
+                      onValueChange={(value) => handleSelectAnswer(question.id.toString(), value)}
+                      className='space-y-4'>
+                      {question.options.map((option, index) => (
+                        <div
+                          key={index}
+                          className={`test-option ${
+                            answers[question.id.toString()] === option ? 'selected' : ''
+                          }`}>
+                          <div className='flex items-center'>
+                            <Radio
+                              id={`${question.id}-option-${index}`}
+                              value={option}
+                              className='mr-3'
+                            />
+                            <Label
+                              htmlFor={`${question.id}-option-${index}`}
+                              className='cursor-pointer font-bold text-lg w-full'>
+                              {option}
+                            </Label>
+                          </div>
+                        </div>
+                      ))}
+                    </RadioGroup>
                   </div>
                 </div>
               ))}
-            </RadioGroup>
+            </div>
           </div>
+        ))}
 
-          {/* Navigation buttons */}
-          <div className='flex justify-between'>
-            <Button
-              onClick={goToPreviousQuestion}
-              className='brutalist-button'
-              disabled={currentSection === 0 && currentQuestion === 0}>
-              <ChevronLeft className='mr-2 h-5 w-5' /> Previous
-            </Button>
-            <Button
-              onClick={goToNextQuestion}
-              className='brutalist-button'
-              disabled={
-                currentSection === test.sections.length - 1 &&
-                currentQuestion === currentSectionData.questions.length - 1
-              }>
-              Next <ChevronRight className='ml-2 h-5 w-5' />
-            </Button>
-          </div>
+        {/* Submit button at bottom */}
+        <div className='mt-8 flex justify-center'>
+          <Button
+            onClick={handleSubmitTest}
+            className='brutalist-button text-lg py-6 px-12'>
+            Submit Test
+          </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }
 

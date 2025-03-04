@@ -1,30 +1,50 @@
 "use client"
 
-import type React from "react"
-
-import { useAuth } from "@/components/auth-provider"
+import { useUser, UserButton } from "@clerk/nextjs"
 import { useRouter, usePathname } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Home, BookOpen, History, User, LogOut } from "lucide-react"
+import { Home, BookOpen, History, User, Shield } from "lucide-react"
+import { QuestionGrid } from "@/components/QuestionGrid"
+import { getMockTest, Question as TestQuestion } from "@/app/mock-questions"
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user, loading, logout } = useAuth()
+  const { user, isLoaded } = useUser()
+  console.log(user)
   const router = useRouter()
   const pathname = usePathname()
+  const [currentTestQuestions, setCurrentTestQuestions] = useState<TestQuestion[]>([])
+
+  // Tính toán các giá trị từ pathname một lần duy nhất khi pathname thay đổi
+  const { isTestTaking, testMatch, currentTestId } = useMemo(() => {
+    const isTestTaking = pathname.includes('/tests/') && pathname.includes('/take')
+    const testMatch = pathname.match(/\/dashboard\/tests\/(\d+)\/take/)
+    const currentTestId = testMatch ? testMatch[1] : null
+    return { isTestTaking, testMatch, currentTestId }
+  }, [pathname])
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (testMatch && currentTestId) {
+      const mockTest = getMockTest(parseInt(currentTestId))
+      const allQuestions = mockTest.sections.flatMap(section => section.questions)
+      setCurrentTestQuestions(allQuestions)
+    } else {
+      setCurrentTestQuestions([])
+    }
+  }, [currentTestId, testMatch])
+
+  useEffect(() => {
+    if (isLoaded && !user) {
       router.push("/login")
     }
-  }, [user, loading, router])
+  }, [user, isLoaded, router])
 
-  if (loading || !user) {
+  if (!isLoaded || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-2xl font-bold">Loading...</div>
@@ -34,10 +54,11 @@ export default function DashboardLayout({
 
   // Menu items for the sidebar
   const menuItems = [
-    { href: "/dashboard", label: "Dashboard", icon: Home },
+    { href: "/dashboard", label: "Home", icon: Home },
     { href: "/dashboard/tests", label: "Practice Tests", icon: BookOpen },
-    { href: "/dashboard/history", label: "Test History", icon: History },
+    { href: "/dashboard/history", label: "History", icon: History },
     { href: "/dashboard/profile", label: "Profile", icon: User },
+    ...(user.publicMetadata.role === "admin" ? [{ href: "/admin", label: "Admin Dashboard", icon: Shield }] : []),
   ]
 
   // Check if the current path matches a menu item
@@ -48,6 +69,11 @@ export default function DashboardLayout({
     return pathname.startsWith(path) && path !== "/dashboard"
   }
 
+  // Check if user is admin
+  // const isAdmin = user.publicMetadata.role === "admin"
+  const isAdmin = true;
+
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -57,18 +83,16 @@ export default function DashboardLayout({
             <h1 className="text-3xl font-black text-white uppercase">TOEIC Practice</h1>
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-white font-bold">Welcome, {user.name}</span>
-            <Button onClick={logout} className="brutalist-button bg-white text-primary">
-              <LogOut className="mr-2 h-4 w-4" /> Logout
-            </Button>
+            <span className="text-white font-bold">Welcome, {user.firstName}</span>
+            <UserButton afterSignOutUrl="/login" />
           </div>
         </div>
       </header>
 
       <div className="flex flex-1">
         {/* Sidebar */}
-        <aside className="w-64 border-r-8 border-black bg-white">
-          <nav className="p-4">
+        <aside className="w-64 border-r-8 border-black bg-white flex flex-col">
+          <nav className="p-4 flex-none">
             <ul className="space-y-2">
               {menuItems.map((item) => (
                 <li key={item.href}>
@@ -80,10 +104,20 @@ export default function DashboardLayout({
               ))}
             </ul>
           </nav>
+          
+          {/* QuestionGrid bên dưới nav khi đang làm bài test */}
+          {isTestTaking && currentTestQuestions.length > 0 && currentTestId && (
+            <div className="sticky top-0 p-4 border-t-8 border-black bg-white z-50">
+              <h3 className="text-base font-black uppercase mb-2">Câu hỏi</h3>
+              <QuestionGrid questions={currentTestQuestions} testId={currentTestId} />
+            </div>
+          )}
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 overflow-y-auto">
+          {children}
+        </main>
       </div>
     </div>
   )
