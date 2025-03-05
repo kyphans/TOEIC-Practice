@@ -1,7 +1,26 @@
+'use client';
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function Home() {
+  const router = useRouter()
+
+  const checkAuth = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return false;
+    }
+    return true;
+  }
+
+  useEffect(() => {
+    checkAuth();
+  }, [router]);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}

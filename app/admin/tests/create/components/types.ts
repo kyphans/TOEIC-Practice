@@ -64,7 +64,9 @@ export interface SentenceTemplate extends BaseTemplate {
 export interface TextCompletionTemplate extends BaseTemplate {
   type: "text"
   template: {
-    passage: string
+    passage?: string
+    passageImage?: string
+    passageType: "text" | "image"
     questions: Array<{
       number: number
       options: string[]

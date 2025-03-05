@@ -66,7 +66,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {adminModules.map((module, index) => (
           <Link key={index} href={module.href}>
-            <Card className="brutalist-card p-6 hover:bg-gray-50 transition-colors">
+            <Card className="brutalist-card p-6 bg-gray-50/50 hover:bg-primary/10 transition-all duration-300 transform hover:scale-[1.02]">
               <div className="flex items-center mb-4">
                 <div className="bg-primary text-white p-3 rounded-md mr-4">
                   <module.icon className="h-6 w-6" />

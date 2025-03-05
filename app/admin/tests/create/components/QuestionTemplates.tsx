@@ -65,8 +65,8 @@ export function QuestionTemplates({ activeTab, setActiveTab, draggedTemplate }: 
 
       <DragOverlay dropAnimation={null}>
         {draggedTemplate ? (
-          <div style={{ 
-            transform: 'rotate(4deg)',
+          <div style={{
+            backgroundColor: 'white',
             cursor: 'grabbing'
           }}>
             <TemplateCard template={draggedTemplate} />

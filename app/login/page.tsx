@@ -7,23 +7,31 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   ClerkProvider,
   SignInButton,
   SignUpButton,
   SignedIn,
   SignedOut,
-  UserButton
+  UserButton,
+  useAuth
 } from '@clerk/nextjs';
 
 export default function Login() {
   const { isLoaded, signIn, setActive } = useSignIn()
+  const { isSignedIn } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    if (isSignedIn) {
+      router.push("/dashboard")
+    }
+  }, [isSignedIn, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

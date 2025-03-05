@@ -73,6 +73,8 @@ export const questionTemplates: TemplateGroups = {
       description: "Complete the text",
       template: {
         passage: "Text passage with (1) _____ to fill in",
+        passageImage: "",
+        passageType: "text",
         questions: [
           {
             number: 1,

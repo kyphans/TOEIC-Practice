@@ -1,18 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { DndContext, DragEndEvent, useDraggable, useDroppable, DragStartEvent } from "@dnd-kit/core"
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { GripVertical, Save, X, Plus } from "lucide-react"
+import { GripVertical, Save, X, Plus, ArrowDownAZ, ArrowUpAZ, Loader2, CheckCircle2 } from "lucide-react"
 import { Question } from "./components/types"
 import { questionTemplates } from "./components/templates"
 import { QuestionFields } from "./components/QuestionFields"
 import { QuestionTemplates } from "./components/QuestionTemplates"
 import { TemplatePickerDialog } from "./components/TemplatePickerDialog"
+import { useToast } from "@/components/ui/use-toast"
+import { QuestionGridCreate } from "./components/QuestionGridCreate"
 
 function PlusButton({ 
   index, 
@@ -99,7 +101,8 @@ function SortableQuestion({
   onRemove,
   onAddAfter,
   selectedQuestions,
-  setSelectedQuestions 
+  setSelectedQuestions,
+  sortOrder 
 }: { 
   question: Question;
   index: number;
@@ -108,6 +111,7 @@ function SortableQuestion({
   onAddAfter: (template: Question) => void;
   selectedQuestions: Question[];
   setSelectedQuestions: (questions: Question[]) => void;
+  sortOrder: "newest" | "oldest";
 }) {
   const {
     attributes,
@@ -130,6 +134,11 @@ function SortableQuestion({
     transition,
   };
 
+  // Tính số thứ tự dựa trên sortOrder
+  const displayNumber = sortOrder === "newest" 
+    ? index + 1 
+    : selectedQuestions.length - index;
+
   return (
     <>
       <div className="question-item relative mb-8">
@@ -142,16 +151,22 @@ function SortableQuestion({
             <div {...attributes} {...listeners} className="flex items-center gap-2 cursor-grab active:cursor-grabbing">
               <GripVertical className="h-5 w-5" />
               <div>
-                <h3 className="font-bold">
-                  Question {index + 1}: {question.section} - Part {question.part}
-                </h3>
-                <p className="text-sm text-gray-600">{question.description}</p>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold bg-primary text-white rounded-full">
+                    {displayNumber}
+                  </span>
+                  <h3 className="font-bold">
+                    {question.section} - Part {question.part}
+                  </h3>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">{question.description}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={onRemove}
+              className="hover:bg-red-100 hover:text-red-500"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -179,10 +194,48 @@ function SortableQuestion({
 }
 
 export default function CreateTest() {
-  const [testName, setTestName] = useState("")
-  const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([])
+  const [testName, setTestName] = useState(() => {
+    // Khôi phục từ localStorage khi component mount
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('draftTest');
+      if (saved) {
+        const { name } = JSON.parse(saved);
+        return name || "";
+      }
+    }
+    return "";
+  })
+  
+  const [selectedQuestions, setSelectedQuestions] = useState<Question[]>(() => {
+    // Khôi phục questions từ localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('draftTest');
+      if (saved) {
+        const { questions } = JSON.parse(saved);
+        return questions || [];
+      }
+    }
+    return [];
+  })
+
   const [activeTab, setActiveTab] = useState<"listening" | "reading">("listening")
   const [draggedTemplate, setDraggedTemplate] = useState<Question | null>(null)
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest")
+  const [isSaving, setIsSaving] = useState(false)
+  const { toast } = useToast()
+
+  // Ref để scroll đến câu hỏi
+  const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Lưu vào localStorage mỗi khi có thay đổi
+  useEffect(() => {
+    if (testName || selectedQuestions.length > 0) {
+      localStorage.setItem('draftTest', JSON.stringify({
+        name: testName,
+        questions: selectedQuestions
+      }));
+    }
+  }, [testName, selectedQuestions]);
 
   const handleDragStart = (event: DragStartEvent) => {
     if (event.active.data.current?.type === 'template') {
@@ -270,6 +323,78 @@ export default function CreateTest() {
     setSelectedQuestions(prev => [newQuestion, ...prev]);
   };
 
+  const handleSort = () => {
+    const newOrder = sortOrder === "newest" ? "oldest" : "newest";
+    setSortOrder(newOrder);
+    
+    const sortedQuestions = [...selectedQuestions].sort((a, b) => {
+      const aId = parseInt(a.id.split('-')[1]); // Get timestamp from id
+      const bId = parseInt(b.id.split('-')[1]);
+      return newOrder === "newest" ? bId - aId : aId - bId;
+    });
+    
+    setSelectedQuestions(sortedQuestions);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      // Giả lập API call
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // Log ra JSON
+      console.log('Test Data:', JSON.stringify({
+        name: testName,
+        questions: selectedQuestions.map(q => ({
+          type: q.type,
+          section: q.section,
+          part: q.part,
+          template: q.template
+        }))
+      }, null, 2))
+
+      // Xóa dữ liệu tạm trong localStorage
+      localStorage.removeItem('draftTest');
+
+      // Hiển thị thông báo thành công
+      toast({
+        title: "Test saved successfully!",
+        description: `Created test "${testName}" with ${selectedQuestions.length} questions.`,
+        duration: 3000,
+      })
+
+    } catch (error) {
+      toast({
+        title: "Error saving test",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleReset = () => {
+    if (window.confirm('Are you sure you want to reset all fields? This action cannot be undone.')) {
+      setTestName("");
+      setSelectedQuestions([]);
+      localStorage.removeItem('draftTest');
+      toast({
+        title: "Reset successful",
+        description: "All fields have been cleared.",
+        duration: 3000,
+      });
+    }
+  }
+
+  const scrollToQuestion = (index: number) => {
+    questionRefs.current[index]?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'center'
+    });
+  };
+
   return (
     <div className="space-y-8">
       <div className="brutalist-container">
@@ -292,18 +417,46 @@ export default function CreateTest() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-1">
             <QuestionTemplates 
               activeTab={activeTab} 
               setActiveTab={setActiveTab}
               draggedTemplate={draggedTemplate}
             />
+            
+            {selectedQuestions.length > 0 && (
+              <div className="mt-4">
+                <QuestionGridCreate 
+                  questions={selectedQuestions}
+                  onQuestionClick={scrollToQuestion}
+                />
+              </div>
+            )}
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <div className="brutalist-container">
-              <h2 className="text-xl font-black mb-4">Test Questions</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-black">Test Questions</h2>
+                <Button
+                  onClick={handleSort}
+                  variant="outline"
+                  className="brutalist-button flex items-center gap-2"
+                >
+                  {sortOrder === "newest" ? (
+                    <>
+                      <ArrowDownAZ className="h-4 w-4" />
+                      Newest First
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUpAZ className="h-4 w-4" />
+                      Oldest First
+                    </>
+                  )}
+                </Button>
+              </div>
               <DroppableQuestions 
                 isDraggingTemplate={!!draggedTemplate}
                 onAddToStart={addQuestionToStart}
@@ -313,16 +466,23 @@ export default function CreateTest() {
                   strategy={verticalListSortingStrategy}
                 >
                   {selectedQuestions.map((question, index) => (
-                    <SortableQuestion
+                    <div 
                       key={question.id}
-                      question={question}
-                      index={index}
-                      isDraggingTemplate={!!draggedTemplate}
-                      onRemove={() => removeQuestion(index)}
-                      onAddAfter={(template) => addQuestionAfter(index, template)}
-                      selectedQuestions={selectedQuestions}
-                      setSelectedQuestions={setSelectedQuestions}
-                    />
+                      ref={(el) => {
+                        questionRefs.current[index] = el;
+                      }}
+                    >
+                      <SortableQuestion
+                        question={question}
+                        index={index}
+                        isDraggingTemplate={!!draggedTemplate}
+                        onRemove={() => removeQuestion(index)}
+                        onAddAfter={(template) => addQuestionAfter(index, template)}
+                        selectedQuestions={selectedQuestions}
+                        setSelectedQuestions={setSelectedQuestions}
+                        sortOrder={sortOrder}
+                      />
+                    </div>
                   ))}
                 </SortableContext>
               </DroppableQuestions>
@@ -332,14 +492,34 @@ export default function CreateTest() {
       </DndContext>
 
       <div className="brutalist-container">
-        <Button 
-          className="brutalist-button" 
-          onClick={() => console.log({ testName, selectedQuestions })}
-          disabled={selectedQuestions.length === 0 || !testName.trim()}
-        >
-          <Save className="mr-2 h-5 w-5" />
-          Save Test
-        </Button>
+        <div className="flex gap-4 flex-wrap">
+          <Button 
+            className="brutalist-button w-full sm:w-auto" 
+            onClick={handleSave}
+            disabled={!testName.trim() || selectedQuestions.length === 0 || isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Saving Test...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-5 w-5" />
+                Save Test
+              </>
+            )}
+          </Button>
+
+          <Button 
+            className="brutalist-button w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white" 
+            onClick={handleReset}
+            disabled={isSaving}
+          >
+            <X className="mr-2 h-5 w-5" />
+            Reset All Fields
+          </Button>
+        </div>
       </div>
     </div>
   )
