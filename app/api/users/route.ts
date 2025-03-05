@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
 import { type User } from "@clerk/nextjs/server"
 import { createClerkClient } from '@clerk/backend'
+import { auth } from '@clerk/nextjs/server'
 
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
 
@@ -31,7 +31,8 @@ export async function GET() {
     }
 
     // Get all users
-    const users = await clerkClient.users.getUserList()
+    const {data: users} = await clerkClient.users.getUserList()
+    console.log("users", typeof users)
     
     // Format user data
     const formattedUsers: FormattedUser[] = users.map((user: User) => ({
@@ -40,9 +41,9 @@ export async function GET() {
       lastName: user.lastName,
       email: user.emailAddresses[0]?.emailAddress,
       role: user.publicMetadata.role as string || "user",
-      createdAt: user.createdAt,
+      createdAt: new Date(user.createdAt).toISOString(),
       imageUrl: user.imageUrl,
-      lastSignInAt: user.lastSignInAt,
+      lastSignInAt: user.lastSignInAt ? new Date(user.lastSignInAt).toISOString() : null,
     }))
 
     return NextResponse.json({ users: formattedUsers })
@@ -54,32 +55,3 @@ export async function GET() {
     )
   }
 }
-
-export async function PUT(request: Request) {
-  try {
-    // Check if user is authenticated and is admin
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const currentUser = await clerkClient.users.getUser(userId)
-    if (currentUser.publicMetadata.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    const data = await request.json()
-    const { targetUserId, updates } = data
-
-    // Update user
-    await clerkClient.users.updateUser(targetUserId, updates)
-
-    return NextResponse.json({ message: "User updated successfully" })
-  } catch (error) {
-    console.error("Error updating user:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
-  }
-} 

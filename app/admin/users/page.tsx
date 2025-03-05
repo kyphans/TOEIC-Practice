@@ -37,6 +37,7 @@ export default function UserManagement() {
     try {
       const response = await fetch("/api/users")
       const data = await response.json()
+      console.log('data', data.users);
       if (data.users) {
         setUsers(data.users)
       }
@@ -83,8 +84,8 @@ export default function UserManagement() {
   return (
     <div className="space-y-8">
       <div className="brutalist-container">
-        <h1 className="text-3xl font-black mb-4">Quản lý người dùng</h1>
-        <p className="text-lg">Quản lý người dùng và phân quyền</p>
+        <h1 className="text-3xl font-black mb-4">User Management</h1>
+        <p className="text-lg">Manage users and their roles</p>
       </div>
 
       {/* Search and Actions */}
@@ -93,22 +94,22 @@ export default function UserManagement() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
           <Input
             type="text"
-            placeholder="Tìm kiếm người dùng..."
+            placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 brutalist-input"
+            className="!pl-10 brutalist-input"
           />
         </div>
         <Button className="brutalist-button">
           <UserPlus className="mr-2 h-5 w-5" />
-          Mời người dùng
+          Invite User
         </Button>
       </div>
 
       {/* Users List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="text-center py-8">Đang tải danh sách người dùng...</div>
+          <div className="text-center py-8">Loading users...</div>
         ) : (
           filteredUsers.map((user) => (
             <div
@@ -131,7 +132,7 @@ export default function UserManagement() {
                     {user.role}
                   </span>
                   <span className="text-sm text-gray-500 ml-4">
-                    Tham gia: {new Date(user.createdAt).toLocaleDateString()}
+                    Joined: {new Date(user.createdAt).toLocaleDateString()}
                   </span>
                 </div>
               </div>
@@ -145,12 +146,12 @@ export default function UserManagement() {
                   {user.role === "admin" ? (
                     <>
                       <ShieldOff className="mr-2 h-5 w-5" />
-                      Gỡ quyền Admin
+                      Remove Admin
                     </>
                   ) : (
                     <>
                       <Shield className="mr-2 h-5 w-5" />
-                      Cấp quyền Admin
+                      Make Admin
                     </>
                   )}
                 </Button>

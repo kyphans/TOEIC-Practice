@@ -108,7 +108,7 @@ export default function DashboardLayout({
           {/* QuestionGrid bên dưới nav khi đang làm bài test */}
           {isTestTaking && currentTestQuestions.length > 0 && currentTestId && (
             <div className="sticky top-0 p-4 border-t-8 border-black bg-white z-50">
-              <h3 className="text-base font-black uppercase mb-2">Câu hỏi</h3>
+              <h3 className="text-base font-black uppercase mb-2">Questions</h3>
               <QuestionGrid questions={currentTestQuestions} testId={currentTestId} />
             </div>
           )}

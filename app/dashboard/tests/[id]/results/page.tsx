@@ -58,6 +58,24 @@ export default function TestResults({ params }: { params: { id: string } }) {
     scoreLevel = "Needs Improvement"
   }
 
+  // Thêm hàm getBackgroundColor
+  const getBackgroundColor = (scoreLevel: string) => {
+    switch (scoreLevel) {
+      case 'Excellent':
+        return 'bg-green-500'; // Màu xanh cho điểm xuất sắc
+      case 'Very Good':
+        return 'bg-emerald-500'; // Màu xanh lá cho điểm rất tốt  
+      case 'Good':
+        return 'bg-yellow-500'; // Màu vàng cho điểm tốt
+      case 'Fair':
+        return 'bg-orange-500'; // Màu cam cho điểm trung bình
+      case 'Needs Improvement':
+        return 'bg-red-500'; // Màu đỏ cho điểm cần cải thiện
+      default:
+        return 'bg-gray-500'; // Màu xám cho trường hợp khác
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center mb-6">
@@ -84,7 +102,7 @@ export default function TestResults({ params }: { params: { id: string } }) {
           <h2 className="text-2xl font-bold mb-4">Your Total Score</h2>
           <div className="text-6xl font-black mb-2 text-primary">{score}</div>
           <div className="text-xl mb-4">out of {results.maxScore}</div>
-          <div className="inline-block bg-primary px-6 py-2 text-xl font-bold">{scoreLevel}</div>
+          <div className={`inline-block ${getBackgroundColor(scoreLevel)} px-6 py-2 text-xl font-bold`}>{scoreLevel}</div>
         </div>
 
         {/* Score by Section */}
