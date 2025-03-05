@@ -11,11 +11,11 @@ export const questionTemplates: TemplateGroups = {
       icon: Image,
       description: "Questions based on photographs",
       template: {
-        question: "Look at the photograph and listen to the four statements.",
-        image: "/placeholder.svg",
-        options: ["Option 1", "Option 2", "Option 3", "Option 4"],
+        question: "",
+        image: "",
+        options: ["", "", "", ""],
         audio: "",
-        transcript: "Look at the photograph. Now listen to the four statements."
+        transcript: ""
       }
     },
     {
@@ -26,8 +26,8 @@ export const questionTemplates: TemplateGroups = {
       icon: MessageSquare,
       description: "Question and Response",
       template: {
-        question: "Listen to the question and select the best response.",
-        options: ["Response 1", "Response 2", "Response 3", "Response 4"],
+        question: "",
+        options: ["", "", "", ""],
         audio: "",
         transcript: ""
       }
@@ -40,11 +40,11 @@ export const questionTemplates: TemplateGroups = {
       icon: Headphones,
       description: "Conversations with multiple questions",
       template: {
-        conversation: "Conversation transcript goes here",
+        conversation: "",
         questions: [
           {
-            question: "Question about the conversation",
-            options: ["Option 1", "Option 2", "Option 3", "Option 4"]
+            question: "",
+            options: ["", "", "", ""]
           }
         ],
         audio: ""
@@ -60,8 +60,8 @@ export const questionTemplates: TemplateGroups = {
       icon: FileText,
       description: "Complete the sentence",
       template: {
-        question: "Complete the sentence with the correct word.",
-        options: ["Option 1", "Option 2", "Option 3", "Option 4"]
+        question: "",
+        options: ["", "", "", ""]
       }
     },
     {
@@ -72,13 +72,13 @@ export const questionTemplates: TemplateGroups = {
       icon: FileText,
       description: "Complete the text",
       template: {
-        passage: "Text passage with (1) _____ to fill in",
+        passage: "",
         passageImage: "",
         passageType: "text",
         questions: [
           {
             number: 1,
-            options: ["Option 1", "Option 2", "Option 3", "Option 4"]
+            options: ["", "", "", ""]
           }
         ]
       }
@@ -91,11 +91,11 @@ export const questionTemplates: TemplateGroups = {
       icon: FileText,
       description: "Reading comprehension",
       template: {
-        passage: "Reading passage goes here",
+        passage: "",
         questions: [
           {
-            question: "Question about the passage",
-            options: ["Option 1", "Option 2", "Option 3", "Option 4"]
+            question: "",
+            options: ["", "", "", ""]
           }
         ]
       }

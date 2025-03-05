@@ -396,38 +396,73 @@ export default function CreateTest() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="brutalist-container">
-        <h1 className="text-3xl font-black mb-4">Create New Test</h1>
-        <p className="text-lg">Drag and drop components to create your test</p>
+    <div className='space-y-8'>
+      <div className='brutalist-container'>
+        <h1 className='text-3xl font-black mb-4'>Create New Test</h1>
+        <p className='text-lg'>Drag and drop components to create your test</p>
       </div>
 
-      <div className="brutalist-container">
-        <Input
-          type="text"
-          placeholder="Enter test name"
-          value={testName}
-          onChange={(e) => setTestName(e.target.value)}
-          className="brutalist-input mb-4"
-        />
+      <div className='brutalist-container !p-0'>
+        <div className='grid grid-cols-1 md:grid-cols-4 gap-6 items-center'>
+          <div className='flex gap-4 flex-wrap md:col-span- p-6'>
+            <Button
+              className='brutalist-button flex-1 sm:flex-none'
+              onClick={handleSave}
+              disabled={
+                !testName.trim() || selectedQuestions.length === 0 || isSaving
+              }>
+              {isSaving ? (
+                <>
+                  <Loader2 className='mr-2 h-5 w-5 animate-spin' />
+                  Saving Test...
+                </>
+              ) : (
+                <>
+                  <Save className='mr-2 h-5 w-5' />
+                  Save Test
+                </>
+              )}
+            </Button>
+
+            <Button
+              className='brutalist-button flex-1 sm:flex-none bg-red-500 hover:bg-red-600 text-white'
+              onClick={handleReset}
+              disabled={isSaving}>
+              <X className='mr-2 h-5 w-5' />
+              Reset All Fields
+            </Button>
+          </div>
+
+          <div className='md:col-span-3 py-6 pr-6'>
+            <div className='flex justify-between items-center mb-4'>
+              <h2 className='text-xl font-black'>Test Name</h2>
+            </div>
+            <Input
+              type='text'
+              placeholder='Enter test name'
+              value={testName}
+              onChange={(e) => setTestName(e.target.value)}
+              className='brutalist-input w-full text-xl font-bold'
+            />
+          </div>
+        </div>
       </div>
 
-      <DndContext 
+      <DndContext
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-1">
-            <QuestionTemplates 
-              activeTab={activeTab} 
+        onDragCancel={handleDragCancel}>
+        <div className='grid grid-cols-1 md:grid-cols-4 gap-6'>
+          <div className='md:col-span-1'>
+            <QuestionTemplates
+              activeTab={activeTab}
               setActiveTab={setActiveTab}
               draggedTemplate={draggedTemplate}
             />
-            
+
             {selectedQuestions.length > 0 && (
-              <div className="mt-4">
-                <QuestionGridCreate 
+              <div className='mt-4'>
+                <QuestionGridCreate
                   questions={selectedQuestions}
                   onQuestionClick={scrollToQuestion}
                 />
@@ -435,92 +470,61 @@ export default function CreateTest() {
             )}
           </div>
 
-          <div className="md:col-span-3">
-            <div className="brutalist-container">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-black">Test Questions</h2>
+          <div className='md:col-span-3'>
+            <div className='brutalist-container'>
+              <div className='flex justify-between items-center mb-4 sticky top-0 bg-white z-10'>
+                <h2 className='text-xl font-black'>Test Questions</h2>
                 <Button
                   onClick={handleSort}
-                  variant="outline"
-                  className="brutalist-button flex items-center gap-2"
-                >
-                  {sortOrder === "newest" ? (
+                  variant='outline'
+                  className='brutalist-button flex items-center gap-2'>
+                  {sortOrder === 'newest' ? (
                     <>
-                      <ArrowDownAZ className="h-4 w-4" />
+                      <ArrowDownAZ className='h-4 w-4' />
                       Newest First
                     </>
                   ) : (
                     <>
-                      <ArrowUpAZ className="h-4 w-4" />
+                      <ArrowUpAZ className='h-4 w-4' />
                       Oldest First
                     </>
                   )}
                 </Button>
               </div>
-              <DroppableQuestions 
-                isDraggingTemplate={!!draggedTemplate}
-                onAddToStart={addQuestionToStart}
-              >
-                <SortableContext 
-                  items={selectedQuestions.map(q => q.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {selectedQuestions.map((question, index) => (
-                    <div 
-                      key={question.id}
-                      ref={(el) => {
-                        questionRefs.current[index] = el;
-                      }}
-                    >
-                      <SortableQuestion
-                        question={question}
-                        index={index}
-                        isDraggingTemplate={!!draggedTemplate}
-                        onRemove={() => removeQuestion(index)}
-                        onAddAfter={(template) => addQuestionAfter(index, template)}
-                        selectedQuestions={selectedQuestions}
-                        setSelectedQuestions={setSelectedQuestions}
-                        sortOrder={sortOrder}
-                      />
-                    </div>
-                  ))}
-                </SortableContext>
-              </DroppableQuestions>
+              <div className='max-h-[calc(100vh-300px)] overflow-y-auto pr-4'>
+                <DroppableQuestions
+                  isDraggingTemplate={!!draggedTemplate}
+                  onAddToStart={addQuestionToStart}>
+                  <SortableContext
+                    items={selectedQuestions.map((q) => q.id)}
+                    strategy={verticalListSortingStrategy}>
+                    {selectedQuestions.map((question, index) => (
+                      <div
+                        key={question.id}
+                        ref={(el) => {
+                          questionRefs.current[index] = el;
+                        }}>
+                        <SortableQuestion
+                          question={question}
+                          index={index}
+                          isDraggingTemplate={!!draggedTemplate}
+                          onRemove={() => removeQuestion(index)}
+                          onAddAfter={(template) =>
+                            addQuestionAfter(index, template)
+                          }
+                          selectedQuestions={selectedQuestions}
+                          setSelectedQuestions={setSelectedQuestions}
+                          sortOrder={sortOrder}
+                        />
+                      </div>
+                    ))}
+                  </SortableContext>
+                </DroppableQuestions>
+              </div>
             </div>
           </div>
         </div>
       </DndContext>
-
-      <div className="brutalist-container">
-        <div className="flex gap-4 flex-wrap">
-          <Button 
-            className="brutalist-button w-full sm:w-auto" 
-            onClick={handleSave}
-            disabled={!testName.trim() || selectedQuestions.length === 0 || isSaving}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Saving Test...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-5 w-5" />
-                Save Test
-              </>
-            )}
-          </Button>
-
-          <Button 
-            className="brutalist-button w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white" 
-            onClick={handleReset}
-            disabled={isSaving}
-          >
-            <X className="mr-2 h-5 w-5" />
-            Reset All Fields
-          </Button>
-        </div>
-      </div>
     </div>
-  )
+  );
 } 

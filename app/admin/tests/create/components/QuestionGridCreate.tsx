@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Question } from "./types";
+import { Question, PhotoTemplate, QATemplate, ConversationTemplate, ReadingTemplate, SentenceTemplate, TextCompletionTemplate } from "./types";
+import { Card } from "@/components/ui/card";
 
 interface QuestionGridCreateProps {
   questions: Question[];
@@ -35,48 +36,40 @@ export function QuestionGridCreate({ questions, onQuestionClick }: QuestionGridC
     7: "Reading Comprehension"
   };
 
-  // Tìm index của câu hỏi trong mảng gốc
-  const findQuestionIndex = (question: Question) => {
-    return questions.findIndex(q => q.id === question.id);
-  };
-
-  // Tính số thứ tự liên tục từ part thấp đến cao
-  let questionNumber = 1;
 
   return (
-    <div className="brutalist-container">
-      <h3 className="text-lg font-bold mb-4">Question Overview</h3>
-      <div className="space-y-4">
-        {sortedParts.map(part => (
-          <div key={part} className="space-y-2">
-            <div className="text-sm font-bold border-b-2 border-black py-1">
-              Part {part}: {partTitles[part]}
-            </div>
-            <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1">
-              {questionsByPart[part].map((question) => {
-                const globalIndex = findQuestionIndex(question);
-                const isValid = question.template.questions?.length > 0 || 
-                              (question.template.options?.length > 0 && question.template.question);
-                
-                const currentNumber = questionNumber++;
-                
-                return (
-                  <Button
-                    key={question.id}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onQuestionClick(globalIndex)}
-                    className={`w-8 h-8 border-2 border-black hover:bg-black hover:text-white transition-colors text-sm p-0 font-bold shadow-brutal
-                      ${isValid ? 'bg-primary text-white' : 'bg-red-100'}`}
-                  >
-                    {currentNumber}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+    <Card className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-lg">Question Grid</h3>
+        <span className="text-sm font-medium bg-secondary px-2 py-1 rounded">
+          Total: {questions.length}
+        </span>
       </div>
-    </div>
+      {sortedParts.map(part => (
+        <div key={part} className="space-y-1.5">
+          <div className="text-sm font-bold py-1 px-2 rounded bg-primary/10">
+            Part {part}: {partTitles[part]}
+          </div>
+          <div className="inline-grid grid-cols-5 gap-2">
+            {questionsByPart[part].map((question, idx) => {
+              const questionIndex = questions.findIndex(q => q.id === question.id);
+              return (
+                <Button
+                  key={question.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onQuestionClick(questionIndex)}
+                  className="w-7 h-7 p-0 rounded border-2 border-black font-bold text-sm
+                    bg-primary text-white
+                    transition-colors shadow-brutal"
+                >
+                  {questionIndex + 1}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </Card>
   );
 } 
