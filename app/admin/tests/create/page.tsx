@@ -15,6 +15,7 @@ import { QuestionTemplates } from "./components/QuestionTemplates"
 import { TemplatePickerDialog } from "./components/TemplatePickerDialog"
 import { useToast } from "@/components/ui/use-toast"
 import { QuestionGridCreate } from "./components/QuestionGridCreate"
+import { ImportQuestionsDialog } from './components/ImportQuestionsDialog'
 
 function PlusButton({ 
   index, 
@@ -223,6 +224,7 @@ export default function CreateTest() {
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest")
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
+  const [showImportDialog, setShowImportDialog] = useState(false)
 
   // Ref để scroll đến câu hỏi
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -395,6 +397,15 @@ export default function CreateTest() {
     });
   };
 
+  const handleImportQuestions = (importedQuestions: Question[]) => {
+    setSelectedQuestions(prev => [...prev, ...importedQuestions])
+    toast({
+      title: "Questions imported successfully!",
+      description: `Added ${importedQuestions.length} questions to the test.`,
+      duration: 3000,
+    })
+  }
+
   return (
     <div className='space-y-8'>
       <div className='brutalist-container'>
@@ -474,24 +485,32 @@ export default function CreateTest() {
             <div className='brutalist-container'>
               <div className='flex justify-between items-center mb-4 sticky top-0 bg-white z-10'>
                 <h2 className='text-xl font-black'>Test Questions</h2>
-                <Button
-                  onClick={handleSort}
-                  variant='outline'
-                  className='brutalist-button flex items-center gap-2'>
-                  {sortOrder === 'newest' ? (
-                    <>
-                      <ArrowDownAZ className='h-4 w-4' />
-                      Newest First
-                    </>
-                  ) : (
-                    <>
-                      <ArrowUpAZ className='h-4 w-4' />
-                      Oldest First
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setShowImportDialog(true)}
+                    variant='outline'
+                    className='brutalist-button flex items-center gap-2'>
+                    Import Questions
+                  </Button>
+                  <Button
+                    onClick={handleSort}
+                    variant='outline'
+                    className='brutalist-button flex items-center gap-2'>
+                    {sortOrder === 'newest' ? (
+                      <>
+                        <ArrowDownAZ className='h-4 w-4' />
+                        Newest First
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUpAZ className='h-4 w-4' />
+                        Oldest First
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-              <div className='max-h-[calc(100vh-300px)] overflow-y-auto pr-4'>
+              <div className='max-h-[calc(100vh)] overflow-y-auto pr-4'>
                 <DroppableQuestions
                   isDraggingTemplate={!!draggedTemplate}
                   onAddToStart={addQuestionToStart}>
@@ -525,6 +544,12 @@ export default function CreateTest() {
           </div>
         </div>
       </DndContext>
+
+      <ImportQuestionsDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onImport={handleImportQuestions}
+      />
     </div>
   );
 } 

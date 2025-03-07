@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Question, PhotoTemplate, QATemplate, ConversationTemplate, ReadingTemplate, SentenceTemplate, TextCompletionTemplate } from "./types";
+import { Question } from "./types";
 import { Card } from "@/components/ui/card";
 
 interface QuestionGridCreateProps {

@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { Question, PhotoTemplate, ConversationTemplate, ReadingTemplate, TextCompletionTemplate } from "./types"
+import { Question, Part1Template, Part2Template, Part3Template, Part4Template, Part5Template, Part6Template, Part7Template } from "./types"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
@@ -22,9 +22,9 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
     setSelectedQuestions(newQuestions);
   };
 
-  const updatePhotoTemplate = (field: keyof PhotoTemplate["template"], value: string) => {
+  const updatePart1Template = (field: keyof Part1Template["template"], value: string) => {
     const newQuestions = [...selectedQuestions];
-    const typedQuestion = newQuestions[index] as PhotoTemplate;
+    const typedQuestion = newQuestions[index] as Part1Template;
     if (field === "options") {
       typedQuestion.template[field] = [value];
     } else {
@@ -33,9 +33,9 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
     setSelectedQuestions(newQuestions);
   };
 
-  const updateConversationTemplate = (field: keyof ConversationTemplate["template"], value: string) => {
+  const updatePart3Template = (field: keyof Part3Template["template"], value: string) => {
     const newQuestions = [...selectedQuestions];
-    const typedQuestion = newQuestions[index] as ConversationTemplate;
+    const typedQuestion = newQuestions[index] as Part3Template;
     if (field === "questions") {
       typedQuestion.template[field] = [{question: value, options: []}];
     } else {
@@ -44,9 +44,9 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
     setSelectedQuestions(newQuestions);
   };
 
-  const updateReadingTemplate = (field: keyof ReadingTemplate["template"], value: string) => {
+  const updatePart7Template = (field: keyof Part7Template["template"], value: string) => {
     const newQuestions = [...selectedQuestions];
-    const typedQuestion = newQuestions[index] as ReadingTemplate;
+    const typedQuestion = newQuestions[index] as Part7Template;
     if (field === "questions") {
       typedQuestion.template[field] = [{question: value, options: []}];
     } else {
@@ -55,9 +55,9 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
     setSelectedQuestions(newQuestions);
   };
 
-  const updateTextCompletionTemplate = (field: keyof TextCompletionTemplate["template"], value: string) => {
+  const updatePart6Template = (field: keyof Part6Template["template"], value: string) => {
     const newQuestions = [...selectedQuestions];
-    const typedQuestion = newQuestions[index] as TextCompletionTemplate;
+    const typedQuestion = newQuestions[index] as Part6Template;
     if (field === "passageType") {
       typedQuestion.template[field] = value as "text" | "image";
     } else if (field === "questions") {
@@ -69,13 +69,13 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
   };
 
   switch (question.type) {
-    case "photo": {
-      const template = (question as PhotoTemplate).template;
+    case "Part1": {
+      const template = (question as Part1Template).template;
       return (
         <>
           <Textarea
             value={template.question}
-            onChange={(e) => updatePhotoTemplate("question", e.target.value)}
+            onChange={(e) => updatePart1Template("question", e.target.value)}
             className={cn("brutalist-input mb-2 min-h-[100px]", inputStyles)}
             placeholder="Look at the photograph and listen to the four statements."
           />
@@ -83,23 +83,23 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
             <Input
               placeholder="Enter image URL"
               value={template.image}
-              onChange={(e) => updatePhotoTemplate("image", e.target.value)}
+              onChange={(e) => updatePart1Template("image", e.target.value)}
               className={cn("brutalist-input", inputStyles)}
             />
             <Input
               placeholder="Enter audio URL"
               value={template.audio}
-              onChange={(e) => updatePhotoTemplate("audio", e.target.value)}
+              onChange={(e) => updatePart1Template("audio", e.target.value)}
               className={cn("brutalist-input", inputStyles)}
             />
           </div>
-          {template.options.map((option, optionIndex) => (
+          {template.options?.map((option, optionIndex) => (
             <Input
               key={optionIndex}
               value={option}
               onChange={(e) => {
                 const newQuestions = [...selectedQuestions];
-                const typedQuestion = newQuestions[index] as PhotoTemplate;
+                const typedQuestion = newQuestions[index] as Part1Template;
                 typedQuestion.template.options[optionIndex] = e.target.value;
                 setSelectedQuestions(newQuestions);
               }}
@@ -111,55 +111,37 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
       )
     }
 
-    case "conversation":
-    case "reading": {
-      const isConversation = question.type === "conversation";
-      const template = isConversation 
-        ? (question as ConversationTemplate).template
-        : (question as ReadingTemplate).template;
-      
-      const mainFieldValue = isConversation 
-        ? (question as ConversationTemplate).template.conversation
-        : (question as ReadingTemplate).template.passage;
-      
+    case "Part3":
+    case "Part4": {
+      const template = (question as Part3Template | Part4Template).template;
       return (
         <>
           <Textarea
-            value={mainFieldValue}
-            onChange={(e) => {
-              if (isConversation) {
-                updateConversationTemplate("conversation", e.target.value);
-              } else {
-                updateReadingTemplate("passage", e.target.value);
-              }
-            }}
+            value={template.conversation}
+            onChange={(e) => updatePart3Template("conversation", e.target.value)}
             className={cn("brutalist-input mb-2 min-h-[200px]", inputStyles)}
-            placeholder={isConversation ? "Enter the conversation transcript here..." : "Enter the reading passage here..."}
+            placeholder="Enter the conversation transcript here..."
           />
-          {template.questions.map((subQ, subIndex) => (
+          {template.questions?.map((subQ, subIndex) => (
             <div key={subIndex} className="mt-4">
               <Textarea
                 value={subQ.question}
                 onChange={(e) => {
                   const newQuestions = [...selectedQuestions];
-                  const typedQuestion = isConversation 
-                    ? newQuestions[index] as ConversationTemplate
-                    : newQuestions[index] as ReadingTemplate;
+                  const typedQuestion = newQuestions[index] as Part3Template;
                   typedQuestion.template.questions[subIndex].question = e.target.value;
                   setSelectedQuestions(newQuestions);
                 }}
                 className={cn("brutalist-input mb-2 min-h-[100px]", inputStyles)}
                 placeholder={`Question ${subIndex + 1} - Enter your question here`}
               />
-              {subQ.options.map((option, optionIndex) => (
+              {subQ.options?.map((option, optionIndex) => (
                 <Input
                   key={optionIndex}
                   value={option}
                   onChange={(e) => {
                     const newQuestions = [...selectedQuestions];
-                    const typedQuestion = isConversation 
-                      ? newQuestions[index] as ConversationTemplate
-                      : newQuestions[index] as ReadingTemplate;
+                    const typedQuestion = newQuestions[index] as Part3Template;
                     typedQuestion.template.questions[subIndex].options[optionIndex] = e.target.value;
                     setSelectedQuestions(newQuestions);
                   }}
@@ -172,9 +154,7 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
           <Button
             onClick={() => {
               const newQuestions = [...selectedQuestions];
-              const typedQuestion = isConversation 
-                ? newQuestions[index] as ConversationTemplate
-                : newQuestions[index] as ReadingTemplate;
+              const typedQuestion = newQuestions[index] as Part3Template;
               typedQuestion.template.questions.push({
                 question: "",
                 options: ["", "", "", ""]
@@ -190,8 +170,8 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
       )
     }
 
-    case "text": {
-      const template = (question as TextCompletionTemplate).template;
+    case "Part6": {
+      const template = (question as Part6Template).template;
       return (
         <>
           <div className="mb-4">
@@ -200,7 +180,7 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
                 type="button"
                 onClick={() => {
                   const newQuestions = [...selectedQuestions];
-                  const typedQuestion = newQuestions[index] as TextCompletionTemplate;
+                  const typedQuestion = newQuestions[index] as Part6Template;
                   typedQuestion.template.passageType = "text";
                   typedQuestion.template.passageImage = "";
                   setSelectedQuestions(newQuestions);
@@ -213,7 +193,7 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
                 type="button"
                 onClick={() => {
                   const newQuestions = [...selectedQuestions];
-                  const typedQuestion = newQuestions[index] as TextCompletionTemplate;
+                  const typedQuestion = newQuestions[index] as Part6Template;
                   typedQuestion.template.passageType = "image";
                   typedQuestion.template.passage = "";
                   setSelectedQuestions(newQuestions);
@@ -227,7 +207,7 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
             {template.passageType === "text" ? (
               <Textarea
                 value={template.passage || ""}
-                onChange={(e) => updateTextCompletionTemplate("passage", e.target.value)}
+                onChange={(e) => updatePart6Template("passage", e.target.value)}
                 className={cn("brutalist-input mb-2 min-h-[200px]", inputStyles)}
                 placeholder="Enter text passage with blanks (e.g., The company's profits _____(1) by 25% last year.)"
               />
@@ -236,7 +216,7 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
                 <Input
                   placeholder="Enter passage image URL"
                   value={template.passageImage || ""}
-                  onChange={(e) => updateTextCompletionTemplate("passageImage", e.target.value)}
+                  onChange={(e) => updatePart6Template("passageImage", e.target.value)}
                   className={cn("brutalist-input", inputStyles)}
                 />
                 {template.passageImage && (
@@ -256,18 +236,18 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
             )}
           </div>
 
-          {template.questions.map((subQ, subIndex) => (
+          {template.questions?.map((subQ, subIndex) => (
             <div key={subIndex} className="mt-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="font-bold">Blank #{subQ.number}</span>
               </div>
-              {subQ.options.map((option, optionIndex) => (
+              {subQ.options?.map((option, optionIndex) => (
                 <Input
                   key={optionIndex}
                   value={option}
                   onChange={(e) => {
                     const newQuestions = [...selectedQuestions];
-                    const typedQuestion = newQuestions[index] as TextCompletionTemplate;
+                    const typedQuestion = newQuestions[index] as Part6Template;
                     typedQuestion.template.questions[subIndex].options[optionIndex] = e.target.value;
                     setSelectedQuestions(newQuestions);
                   }}
@@ -280,7 +260,7 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
           <Button
             onClick={() => {
               const newQuestions = [...selectedQuestions];
-              const typedQuestion = newQuestions[index] as TextCompletionTemplate;
+              const typedQuestion = newQuestions[index] as Part6Template;
               const currentQuestions = typedQuestion.template.questions;
               const nextNumber = currentQuestions.length > 0 
                 ? Math.max(...currentQuestions.map(q => q.number)) + 1 
@@ -315,7 +295,7 @@ export const QuestionFields = ({ question, index, selectedQuestions, setSelected
             className={cn("brutalist-input mb-2 min-h-[100px]", inputStyles)}
             placeholder="Enter your question here"
           />
-          {template.options.map((option, optionIndex) => (
+          {template.options?.map((option, optionIndex) => (
             <Input
               key={optionIndex}
               value={option}

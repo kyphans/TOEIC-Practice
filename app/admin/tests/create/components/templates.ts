@@ -5,7 +5,7 @@ export const questionTemplates: TemplateGroups = {
   listening: [
     {
       id: "photo-listening",
-      type: "photo",
+      type: "Part1",
       section: "Listening",
       part: 1,
       icon: Image,
@@ -20,7 +20,7 @@ export const questionTemplates: TemplateGroups = {
     },
     {
       id: "qa-listening",
-      type: "qa",
+      type: "Part2",
       section: "Listening",
       part: 2,
       icon: MessageSquare,
@@ -34,7 +34,7 @@ export const questionTemplates: TemplateGroups = {
     },
     {
       id: "conversation",
-      type: "conversation",
+      type: "Part3",
       section: "Listening",
       part: 3,
       icon: Headphones,
@@ -54,7 +54,7 @@ export const questionTemplates: TemplateGroups = {
   reading: [
     {
       id: "sentence-completion",
-      type: "sentence",
+      type: "Part5",
       section: "Reading",
       part: 5,
       icon: FileText,
@@ -66,7 +66,7 @@ export const questionTemplates: TemplateGroups = {
     },
     {
       id: "text-completion",
-      type: "text",
+      type: "Part6",
       section: "Reading",
       part: 6,
       icon: FileText,
@@ -85,7 +85,7 @@ export const questionTemplates: TemplateGroups = {
     },
     {
       id: "reading-comprehension",
-      type: "reading",
+      type: "Part7",
       section: "Reading",
       part: 7,
       icon: FileText,
