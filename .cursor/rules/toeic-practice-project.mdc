@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+- Sử dụng nextjs version 14.X, 
+- ưu tiên sử dụng SSR, ISR, SSG.
+- Luôn ưu tiên tái sử dụng code

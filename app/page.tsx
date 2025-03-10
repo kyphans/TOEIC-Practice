@@ -11,7 +11,7 @@ export default function Home() {
   const checkAuth = () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      router.push('/login');
+      router.push('/');
       return false;
     }
     return true;

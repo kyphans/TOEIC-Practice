@@ -56,7 +56,7 @@ export default function TestManagement() {
       </div>
 
       <div className="grid gap-4">
-        {tests.map((test) => (
+        {tests?.map((test) => (
           <div
             key={test.id}
             className="brutalist-container p-4 flex justify-between items-center"
