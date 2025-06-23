@@ -1,5 +1,6 @@
+// TODO: Migrate logic to use neonPool from '@/lib/supabase' instead of supabase
+
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { auth } from '@clerk/nextjs'
 
 export async function GET() {
@@ -7,16 +8,6 @@ export async function GET() {
     const { userId } = auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: progress, error } = await supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', userId)
-      .single()
-
-    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-      throw error
     }
 
     // If no progress found, return default values

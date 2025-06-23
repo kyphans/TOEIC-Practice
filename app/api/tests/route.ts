@@ -1,29 +1,27 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { sql } from '@/lib/db'
 import { auth } from '@clerk/nextjs/server'
+import { getMockTest } from '@/lib/testHelper'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const isMock = searchParams.get('mock') === '1'
+  const testId = Number(searchParams.get('testId') || 1)
+
+  if (isMock) {
+    const test = getMockTest(testId)
+    return NextResponse.json({ test })
+  }
+
   try {
     console.log('Fetching tests')
     // First get all tests
-    const { data: tests, error: testsError } = await supabase
-      .from('tests')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (testsError) throw testsError
+    const tests = await sql`SELECT * FROM tests ORDER BY created_at DESC`;
 
     // Then get questions for each test
     const testsWithQuestions = await Promise.all(
-      tests.map(async (test) => {
-        const { data: questions, error: questionsError } = await supabase
-          .from('questions')
-          .select('id, type, section, part, template, order')
-          .eq('test_id', test.id)
-          .order('order', { ascending: true })
-
-        if (questionsError) throw questionsError
-
+      tests.map(async (test: any) => {
+        const questions = await sql`SELECT id, type, section, part, template, "order" FROM questions WHERE test_id = ${test.id} ORDER BY "order" ASC`;
         return {
           ...test,
           questions
@@ -48,16 +46,12 @@ export async function POST(request: Request) {
     const { name, questions } = await request.json()
 
     // Start a transaction
-    const { data: test, error: testError } = await supabase
-      .from('tests')
-      .insert({
-        name,
-        created_by: userId
-      })
-      .select()
-      .single()
-
-    if (testError) throw testError
+    const testResult = await sql`
+      INSERT INTO tests (name, created_by)
+      VALUES (${name}, ${userId})
+      RETURNING *
+    `;
+    const test = testResult[0];
 
     if (questions && questions.length > 0) {
       const questionsWithTestId = questions.map((q: any, index: number) => ({
@@ -66,11 +60,13 @@ export async function POST(request: Request) {
         order: index + 1
       }))
 
-      const { error: questionsError } = await supabase
-        .from('questions')
-        .insert(questionsWithTestId)
-
-      if (questionsError) throw questionsError
+      // Insert questions
+      for (const q of questionsWithTestId) {
+        await sql`
+          INSERT INTO questions (test_id, type, section, part, template, "order")
+          VALUES (${q.test_id}, ${q.type}, ${q.section}, ${q.part}, ${q.template}, ${q.order})
+        `;
+      }
     }
 
     return NextResponse.json({ test })
@@ -90,4 +86,6 @@ export async function DELETE(request: Request) {
   const data = await request.json()
   // TODO: Implement delete test logic 
   return NextResponse.json({ message: 'Test deleted successfully' })
-} 
+}
+
+// TODO: Migrate logic to use neonPool from '@/lib/supabase' instead of supabase 

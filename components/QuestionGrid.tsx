@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Question } from "@/app/mock-questions";
+import { Question } from "@/app/mock-questions-real";
 import { useAnswersStore } from "@/app/store/answers";
 import { useTimerStore } from "@/app/store/timer";
 import { useEffect } from "react";

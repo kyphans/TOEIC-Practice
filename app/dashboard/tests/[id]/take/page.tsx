@@ -1,13 +1,15 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, Radio } from "@/components/ui/radio"
 import { Label } from "@/components/ui/label"
-import { getMockTest } from "@/app/mock-questions"
 import { useAnswersStore } from "@/app/store/answers"
 import { useTimerStore } from "@/app/store/timer"
+import type { TestData } from '@/lib/testHelper'
+import { checkAnswers } from '@/lib/testHelper'
+import { SubmitTestDialog } from "@/components/SubmitTestDialog"
 
 export default function TakeTest({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -15,8 +17,22 @@ export default function TakeTest({ params }: { params: { id: string } }) {
   const { setAnswer, getAnswersByTestId, initAnswers, clearAnswers } = useAnswersStore()
   const { timeLeft, setTimeLeft, clearTimer } = useTimerStore()
 
-  // Get test data
-  const test = getMockTest(parseInt(testId))
+  // State cho test
+  const [test, setTest] = useState<TestData | null>(null)
+  const [loading, setLoading] = useState(true)
+  // State cho dialog xác nhận submit
+  const [showSubmitModal, setShowSubmitModal] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/tests?mock=1&testId=${testId}`)
+      .then(res => res.json())
+      .then(data => {
+        setTest(data.test)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [testId])
 
   useEffect(() => {
     // Khởi tạo answers từ localStorage nếu có
@@ -29,6 +45,11 @@ export default function TakeTest({ params }: { params: { id: string } }) {
   }, [testId, initAnswers, timeLeft, setTimeLeft])
 
   const answers = getAnswersByTestId(testId)
+
+  // Tính toán câu hỏi đã trả lời/chưa trả lời
+  const allQuestions = test ? test.sections.flatMap(section => section.questions) : []
+  const answeredQuestions = allQuestions.filter(q => answers[q.id?.toString?.()])
+  const unansweredQuestions = allQuestions.filter(q => !answers[q.id?.toString?.()])
 
   // Handle scroll to question on hash change
   useEffect(() => {
@@ -57,18 +78,25 @@ export default function TakeTest({ params }: { params: { id: string } }) {
 
   // Handle test submission
   const handleSubmitTest = () => {
-    // Calculate a mock score
-    const totalQuestions = test.sections.reduce((total, section) => total + section.questions.length, 0)
-    const answeredQuestions = Object.keys(answers).length
-    const mockScore = Math.floor((answeredQuestions / totalQuestions) * 990)
-
-    // Clear answers and timer
+    if (!test) return
+    const { correctCount, score } = checkAnswers(testId, answers)
     clearAnswers()
     clearTimer(testId)
-
-    // Navigate to results page
-    router.push(`/dashboard/tests/${testId}/results?score=${mockScore}`)
+    router.push(`/dashboard/tests/${testId}/results?score=${score}&correct=${correctCount}`)
   }
+
+  // Hàm mở modal khi nhấn Submit Test
+  const handleOpenSubmitModal = () => setShowSubmitModal(true)
+  // Hàm đóng modal
+  const handleCloseSubmitModal = () => setShowSubmitModal(false)
+  // Hàm xác nhận submit
+  const handleConfirmSubmit = () => {
+    setShowSubmitModal(false)
+    handleSubmitTest()
+  }
+
+  if (loading) return <div className='min-h-screen flex items-center justify-center'>Loading test...</div>
+  if (!test) return <div className='min-h-screen flex items-center justify-center'>Test not found.</div>
 
   return (
     <div className='min-h-screen bg-white'>
@@ -111,18 +139,21 @@ export default function TakeTest({ params }: { params: { id: string } }) {
                       {question.options.map((option, index) => (
                         <div
                           key={index}
-                          className={`test-option ${
-                            answers[question.id.toString()] === option ? 'selected' : ''
-                          }`}>
-                          <div className='flex items-center'>
+                          className={`test-option cursor-pointer ${answers[question.id.toString()] === option ? 'selected' : ''}`}
+                          onClick={() => handleSelectAnswer(question.id.toString(), option)}
+                        >
+                          <div className='flex items-center w-full'>
                             <Radio
                               id={`${question.id}-option-${index}`}
                               value={option}
-                              className='mr-2 sm:mr-3'
+                              className='mr-2 sm:mr-3 shadcn-radio'
+                              checked={answers[question.id.toString()] === option}
+                              onChange={() => handleSelectAnswer(question.id.toString(), option)}
                             />
                             <Label
                               htmlFor={`${question.id}-option-${index}`}
-                              className='cursor-pointer font-medium text-base sm:text-lg w-full'>
+                              className='cursor-pointer font-medium text-base sm:text-lg w-full'
+                            >
                               {option}
                             </Label>
                           </div>
@@ -139,11 +170,20 @@ export default function TakeTest({ params }: { params: { id: string } }) {
         {/* Submit button at bottom */}
         <div className='mt-6 sm:mt-8 flex justify-center pb-6 sm:pb-8'>
           <Button
-            onClick={handleSubmitTest}
+            onClick={handleOpenSubmitModal}
             className='brutalist-button text-base sm:text-lg py-4 sm:py-6 px-8 sm:px-12'>
             Submit Test
           </Button>
         </div>
+        {/* Dialog xác nhận submit */}
+        <SubmitTestDialog
+          open={showSubmitModal}
+          onOpenChange={setShowSubmitModal}
+          answeredQuestions={answeredQuestions}
+          unansweredQuestions={unansweredQuestions}
+          onConfirm={handleConfirmSubmit}
+          onCancel={handleCloseSubmitModal}
+        />
       </div>
     </div>
   )
