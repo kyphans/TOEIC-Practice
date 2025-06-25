@@ -1,31 +1,30 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { BrutalistTable } from '@/components/BrutalistTable';
 import type { Question } from '@/types/questions.type';
+import { fetcher } from '@/lib/query';
 
 export default function QuestionsPage() {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
-  const [total, setTotal] = useState(0);
-  const totalPages = Math.ceil(total / pageSize) || 1;
+  const [pageSize, setPageSize] = useState(20);
+
+  const { data, error, isLoading } = useSWR(
+    `/api/questions?index=${pageIndex}&pageSize=${pageSize}`,
+    fetcher
+  );
+
+  const questions: Question[] = data?.questions || [];
+  const total: number = data?.total || 0;
+
+  // Giữ lại previous data khi loading
+  const [previousData, setPreviousData] = useState<{ questions: Question[]; total: number }>({ questions: [], total: 0 });
 
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        setError(null);
-        const res = await fetch(`/api/questions?index=${pageIndex}&pageSize=${pageSize}`);
-        if (!res.ok) throw new Error('Failed to fetch questions');
-        const data = await res.json();
-        setQuestions(data.questions || []);
-        setTotal(data.total || 0);
-      } catch (e: any) {
-        setError(e.message);
-      }
-    };
-    fetchQuestions();
-  }, [pageIndex, pageSize]);
+    if (data && data.questions) {
+      setPreviousData({ questions: data.questions, total: data.total });
+    }
+  }, [data]);
 
   // Columns config for BrutalistTable
   const columns = [
@@ -47,10 +46,10 @@ export default function QuestionsPage() {
   ];
 
   // Filter options (ví dụ: filter theo sectionName, typeName)
-  const sectionOptions = Array.from(new Set(questions.map((q) => q.sectionName)))
+  const sectionOptions = Array.from(new Set((isLoading ? previousData.questions : questions).map((q) => q.sectionName)))
     .filter(Boolean)
     .map((name) => ({ label: String(name), value: name }));
-  const typeOptions = Array.from(new Set(questions.map((q) => q.typeName)))
+  const typeOptions = Array.from(new Set((isLoading ? previousData.questions : questions).map((q) => q.typeName)))
     .filter(Boolean)
     .map((name) => ({ label: String(name), value: name }));
 
@@ -59,19 +58,19 @@ export default function QuestionsPage() {
       <div className='brutalist-container'>
         <h1 className='text-2xl font-bold mb-4'>Questions List</h1>
       </div>
-      {error && <div className='text-red-500 mb-4'>{error}</div>}
-      
+      {error && <div className='text-red-500 mb-4'>{error.message}</div>}
       <BrutalistTable
+        isLoading={isLoading}
         columns={columns}
-        data={questions}
+        data={isLoading ? previousData.questions : questions}
         searchKeys={['content', 'correctAnswer', 'sectionName', 'typeName']}
         filterOptions={[
           { key: 'sectionName', options: sectionOptions, label: 'Section' },
-          { key: 'typeName', options: typeOptions, label: 'Type' },
+          { key: 'typeName', options: typeOptions, label: 'Type' }
         ]}
         page={pageIndex}
         pageSize={pageSize}
-        total={total}
+        total={isLoading ? previousData.total : total}
         onPageChange={setPageIndex}
         onPageSizeChange={(size) => {
           setPageSize(size);

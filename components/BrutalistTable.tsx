@@ -24,6 +24,7 @@ interface BrutalistTableProps<T> {
     label?: string;
   }[];
   className?: string;
+  isLoading?: boolean;
 }
 
 export function BrutalistTable<T extends Record<string, any>>({
@@ -37,6 +38,7 @@ export function BrutalistTable<T extends Record<string, any>>({
   searchKeys = [],
   filterOptions = [],
   className = '',
+  isLoading = false,
 }: BrutalistTableProps<T>) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, any>>({});
@@ -115,7 +117,7 @@ export function BrutalistTable<T extends Record<string, any>>({
   };
 
   return (
-    <div className={`${className}`}>
+    <div className={`relative ${className}`}>
       <div className='flex gap-2 py-2'>
         {searchKeys.length > 0 && (
           <Input
@@ -129,14 +131,19 @@ export function BrutalistTable<T extends Record<string, any>>({
         {filterOptions.map((filter) => (
           <Select
             key={String(filter.key)}
-            value={filters[String(filter.key)] ?? "__all__"}
-            onValueChange={(value) => handleFilterChange(String(filter.key), value)}
-          >
-            <SelectTrigger className="brutalist-select bg-background text-foreground border-2 border-black rounded-none font-bold px-4 py-2 shadow-sm focus:outline focus:outline-2 focus:outline-primary transition w-48">
-              <SelectValue placeholder={`All ${filter.label || String(filter.key)}`} />
+            value={filters[String(filter.key)] ?? '__all__'}
+            onValueChange={(value) =>
+              handleFilterChange(String(filter.key), value)
+            }>
+            <SelectTrigger className='brutalist-select bg-background text-foreground border-2 border-black rounded-none font-bold px-4 py-2 shadow-sm focus:outline focus:outline-2 focus:outline-primary transition w-48'>
+              <SelectValue
+                placeholder={`All ${filter.label || String(filter.key)}`}
+              />
             </SelectTrigger>
             <SelectContent className='bg-background text-foreground border-4 border-black rounded-none font-bold shadow-sm focus:outline focus:outline-2 focus:outline-primary transition'>
-              <SelectItem value='__all__'>All {filter.label || String(filter.key)}</SelectItem>
+              <SelectItem value='__all__'>
+                All {filter.label || String(filter.key)}
+              </SelectItem>
               {filter.options.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -148,13 +155,12 @@ export function BrutalistTable<T extends Record<string, any>>({
       </div>
       <div className='brutalist-container'>
         <Table>
-          <TableHeader className="bg-white border-b-4 border-black shadow-sm">
+          <TableHeader className='bg-white border-b-4 border-black shadow-sm'>
             <TableRow>
               {columns.map((col) => (
                 <TableHead
                   key={String(col.key)}
-                  className="border-b-4 border-black uppercase font-extrabold px-6 py-3 text-black bg-white rounded-none"
-                >
+                  className='border-b-4 border-black uppercase font-extrabold px-6 py-3 text-black bg-white rounded-none'>
                   {col.label}
                 </TableHead>
               ))}
@@ -203,14 +209,25 @@ export function BrutalistTable<T extends Record<string, any>>({
             <select
               className='ml-2 border px-2 py-1 rounded bg-white text-black'
               value={currentPageSize}
-              onChange={handlePageSizeChange}
-            >
+              onChange={handlePageSizeChange}>
               {[10, 20, 50, 100].map((size) => (
-                <option key={size} value={size}>{size} / page</option>
+                <option key={size} value={size}>
+                  {size} / page
+                </option>
               ))}
             </select>
           </div>
         </div>
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div
+            className='absolute inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-50'
+            style={{ pointerEvents: 'auto' }}>
+            <span className='font-extrabold text-2xl uppercase border-4 border-black px-6 py-2 bg-white shadow-brutalist animate-brutalist-shake'>
+              LOADING...
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
