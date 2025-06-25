@@ -54,7 +54,7 @@ export default function Profile() {
   };
 
   return (
-    <div className='space-y-8'>
+    <div className='space-y-8 p-6'>
       <div className='brutalist-container'>
         <h1 className='text-3xl font-black mb-4'>Your Profile</h1>
         <p className='text-lg'>Manage your account settings and preferences.</p>

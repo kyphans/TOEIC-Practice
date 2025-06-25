@@ -1,21 +1,12 @@
 "use client"
 
 import { useUser } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Users, BookOpen, Settings, BarChart } from "lucide-react"
 
 export default function AdminDashboard() {
   const { user, isLoaded } = useUser()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (isLoaded && (!user || user.publicMetadata.role !== "admin")) {
-      router.push("/dashboard")
-    }
-  }, [user, isLoaded, router])
 
   const adminModules = [
     {

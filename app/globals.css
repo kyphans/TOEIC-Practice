@@ -74,12 +74,13 @@
   background-color: var(--secondary);
 }
 
-.brutalist-input {
+.brutalist-input, .brutalist-select {
   border: 4px solid black;
+  height: 3rem;
   padding: 0.5rem 1rem;
 }
 
-.brutalist-input:focus {
+.brutalist-input:focus, .brutalist-select:focus {
   outline: none;
   border-color: var(--primary);
 }

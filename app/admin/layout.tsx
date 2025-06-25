@@ -1,39 +1,28 @@
-"use client"
-
-import { useUser } from "@clerk/nextjs"
-import { useRouter, usePathname } from "next/navigation"
-import { useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Home, Users, BookOpen, LogOut } from "lucide-react"
+import { checkRole } from '@/lib/role'
+import { redirect } from 'next/navigation'
+import { currentUser } from '@clerk/nextjs/server'
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user, isLoaded } = useUser()
-  const router = useRouter()
-  const pathname = usePathname()
-
-  useEffect(() => {
-    if (isLoaded && (!user || user.publicMetadata.role !== "admin")) {
-      router.push("/dashboard")
-    }
-  }, [user, isLoaded, router])
-
-  if (!isLoaded || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-2xl font-bold">Loading...</div>
-      </div>
-    )
+  // Kiểm tra quyền admin
+  const isAdmin = await checkRole('admin')
+  if (!isAdmin) {
+    redirect('/dashboard')
   }
+  // Lấy thông tin user
+  const user = await currentUser()
 
   const menuItems = [
-    { href: "/admin", label: "Dashboard", icon: Home },
-    { href: "/admin/tests", label: "Test Management", icon: BookOpen },
-    { href: "/admin/users", label: "User Management", icon: Users },
+    { href: '/admin', label: 'Dashboard', icon: Home },
+    { href: '/admin/tests', label: 'Test Management', icon: BookOpen },
+    { href: '/admin/questions', label: 'Question Management', icon: BookOpen },
+    { href: '/admin/users', label: 'User Management', icon: Users },
   ]
 
   return (
@@ -48,12 +37,14 @@ export default function AdminLayout({
           </Link>
           <div className='flex items-center gap-4'>
             <span className='text-white font-bold'>
-              Admin: {user.firstName}
+              Admin: {user?.firstName}
             </span>
             <Button
-              onClick={() => router.push('/dashboard')}
+              asChild
               className='brutalist-button bg-white text-primary'>
-              <LogOut className='mr-2 h-4 w-4' /> Back to App
+              <Link href='/dashboard'>
+                <LogOut className='mr-2 h-4 w-4' /> Back to App
+              </Link>
             </Button>
           </div>
         </div>
@@ -65,27 +56,25 @@ export default function AdminLayout({
           <nav className='p-4'>
             <ul className='space-y-2'>
               {menuItems.map((item) => {
-                const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
+                // Không có usePathname phía server, nên active state cần xử lý khác nếu muốn
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className={`sidebar-menu-item ${
-                        isActive ? 'bg-primary text-white' : ''
-                      }`}>
+                      className={`sidebar-menu-item`}>
                       <item.icon className='mr-2 h-5 w-5' />
                       {item.label}
                     </Link>
                   </li>
-                );
+                )
               })}
             </ul>
           </nav>
         </aside>
 
         {/* Main content */}
-        <main className='flex-1 p-4 overflow-y-auto'>{children}</main>
+        <main className='flex-1 p-6 overflow-y-auto'>{children}</main>
       </div>
     </div>
-  );
+  )
 } 
