@@ -17,7 +17,7 @@ interface QuestionGridProps {
 
 export const QuestionGrid = React.memo(function QuestionGrid({ questions, testId, testName, onSubmitTest }: QuestionGridProps) {
   const { getAnswersByTestId, initAnswers } = useAnswersStore();
-  const { timeLeft, decrementTime } = useTimerStore();
+  const { timeLeft, setTimeLeft, decrementTime } = useTimerStore();
 
   useEffect(() => {
     // Khởi tạo answers từ localStorage nếu có
@@ -54,6 +54,10 @@ export const QuestionGrid = React.memo(function QuestionGrid({ questions, testId
   // Handle timer
   useEffect(() => {
     if (!onSubmitTest) return; // Chỉ chạy timer nếu có onSubmitTest
+
+      if (!timeLeft[testId]) {
+        setTimeLeft(testId, 7200); // 120 minutes in seconds
+      }
 
     const timer = setInterval(() => {
       if (timeLeft[testId] <= 1) {
@@ -100,8 +104,18 @@ export const QuestionGrid = React.memo(function QuestionGrid({ questions, testId
     7: "Reading Comprehension"
   };
 
+  // Tạo mapping từ question.id sang số thứ tự (question number)
+  const questionNumberMap: Record<number, number> = {};
+  let currentNumber = 1;
+  sortedParts.forEach(part => {
+    questionsByPart[part].forEach(question => {
+      questionNumberMap[question.id] = currentNumber;
+      currentNumber++;
+    });
+  });
+
   return (
-    <div className="w-full space-y-2">
+    <div className='w-full space-y-2'>
       {/* Test header - chỉ hiển thị khi có testName và onSubmitTest */}
       {testName && onSubmitTest && (
         <header className='bg-primary p-3 text-white sticky top-0 z-10'>
@@ -121,25 +135,28 @@ export const QuestionGrid = React.memo(function QuestionGrid({ questions, testId
         </header>
       )}
 
-      <div className={`${testName && onSubmitTest ? 'max-h-[calc(100vh-200px)]' : 'max-h-[calc(100vh-200px)]'} overflow-y-auto pr-2 space-y-2`}>
-        {sortedParts.map(part => (
-          <div key={part} className="space-y-1">
-            <div className={`text-xs sm:text-sm font-bold border-b border-black ${testName && onSubmitTest ? 'top-[120px] sm:top-14' : 'top-0'} bg-white py-1`}>
+      <div
+        className={`max-h-[calc(100vh-300px)] overflow-y-auto pr-2 space-y-2`}>
+        {sortedParts.map((part) => (
+          <div key={part} className='space-y-1'>
+            <div
+              className={`text-xs sm:text-sm font-bold border-b border-black ${
+                testName && onSubmitTest ? 'top-[120px] sm:top-14' : 'top-0'
+              } bg-white py-1`}>
               Part {part}: {partTitles[part]}
             </div>
-            <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-1">
-              {questionsByPart[part].map(question => {
+            <div className='grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-1'>
+              {questionsByPart[part].map((question) => {
                 const hasAnswer = answers[question.id.toString()];
                 return (
                   <Button
                     key={question.id}
-                    variant="outline"
-                    size="sm"
+                    variant='outline'
+                    size='sm'
                     onClick={() => navigateToQuestion(question.id)}
                     className={`w-6 h-6 sm:w-7 sm:h-7 border border-black hover:bg-black hover:text-white transition-colors text-xs p-0 font-bold shadow-brutal
-                      ${hasAnswer ? 'bg-primary text-white' : ''}`}
-                  >
-                    {question.id}
+                      ${hasAnswer ? 'bg-primary text-white' : ''}`}>
+                    {questionNumberMap[question.id]}
                   </Button>
                 );
               })}
@@ -148,7 +165,7 @@ export const QuestionGrid = React.memo(function QuestionGrid({ questions, testId
         ))}
       </div>
 
-      <div className="flex justify-center pt-4">
+      <div className='flex justify-center pt-4'>
         <Button
           onClick={onSubmitTest}
           className='brutalist-button bg-white text-primary text-sm sm:text-base py-1 px-2 sm:py-2 sm:px-3 h-auto w-full sm:w-auto'>

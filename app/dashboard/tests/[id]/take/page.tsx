@@ -13,6 +13,7 @@ import type { ExamDetailResponse } from '@/types/exams.type'
 import { checkAnswers } from '@/lib/testHelper'
 import { SubmitTestDialog } from "@/components/SubmitTestDialog"
 import { QuestionGrid } from '@/components/QuestionGrid'
+import { QuestionCard } from "../../../../../components/QuestionCard"
 
 export default function TakeTest({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -52,6 +53,26 @@ export default function TakeTest({ params }: { params: { id: string } }) {
   const allQuestions = data?.id ? data.sections.flatMap(section => section.questions) : []
   const answeredQuestions = allQuestions.filter(q => answers[q.id?.toString?.()])
   const unansweredQuestions = allQuestions.filter(q => !answers[q.id?.toString?.()])
+
+  // Đánh lại số thứ tự câu hỏi dựa trên part và thứ tự trong part
+  // 1. Nhóm câu hỏi theo part
+  const questionsByPart = allQuestions.reduce((acc, question) => {
+    const part = question.part_code ? parseInt(question.part_code.replace(/[^0-9]/g, '')) || 0 : 0;
+    if (!acc[part]) acc[part] = [];
+    acc[part].push(question);
+    return acc;
+  }, {} as Record<number, typeof allQuestions>);
+  // 2. Sort các part
+  const sortedParts = Object.keys(questionsByPart).map(Number).sort((a, b) => a - b);
+  // 3. Tạo mapping từ id sang số thứ tự
+  const questionNumberMap: Record<string, number> = {};
+  let currentNumber = 1;
+  sortedParts.forEach(part => {
+    questionsByPart[part].forEach(q => {
+      questionNumberMap[q.id.toString()] = currentNumber;
+      currentNumber++;
+    });
+  });
 
   // Chuyển đổi allQuestions (ExamQuestion[]) sang Question[] cho QuestionGrid
   const questionsForGrid = useMemo(() => allQuestions.map(q => ({
@@ -102,7 +123,10 @@ export default function TakeTest({ params }: { params: { id: string } }) {
   }
 
   // Hàm mở modal khi nhấn Submit Test
-  const handleOpenSubmitModal = () => setShowSubmitModal(true)
+  const handleOpenSubmitModal = () => {
+    console.log('open submit modal')
+    setShowSubmitModal(true);
+  }
   // Hàm đóng modal
   const handleCloseSubmitModal = () => setShowSubmitModal(false)
   // Hàm xác nhận submit
@@ -129,81 +153,17 @@ export default function TakeTest({ params }: { params: { id: string } }) {
                 {section.name} Section
               </h2>
               <div className='space-y-6 sm:space-y-8'>
-                {section.questions.map((question, index) => (
-                  <div
-                    key={question.id}
-                    id={`question${question.id}`}
-                    className={`py-4 scroll-mt-20 ${
-                      index !== section.questions.length - 1
-                        ? 'border-b border-gray-200'
-                        : ''
-                    }`}>
-                    <div className='mb-4'>
-                      <h3 className='text-lg sm:text-xl font-bold mb-2 sm:mb-4'>
-                        Question {question.id}
-                      </h3>
-                      <p className='text-base sm:text-lg'>
-                        {question.question}
-                      </p>
-                    </div>
-
-                    {'type' in question &&
-                      question.type === 'photo' &&
-                      question.image && (
-                        <div className='mb-4 flex justify-center'>
-                          <img
-                            src={question.image}
-                            alt='Question image'
-                            className='max-w-full sm:max-w-[400px] h-auto'
-                          />
-                        </div>
-                      )}
-
-                    <div className='space-y-2 sm:space-y-3'>
-                      <RadioGroup
-                        value={answers[question.id.toString()] || ''}
-                        onValueChange={(value) =>
-                          handleSelectAnswer(question.id.toString(), value)
-                        }
-                        className='space-y-2 sm:space-y-3'>
-                        {question.options.map((option, index) => (
-                          <div
-                            key={index}
-                            className={`test-option cursor-pointer ${
-                              answers[question.id.toString()] === option
-                                ? 'selected'
-                                : ''
-                            }`}
-                            onClick={() =>
-                              handleSelectAnswer(question.id.toString(), option)
-                            }>
-                            <div className='flex items-center w-full'>
-                              <Radio
-                                id={`${question.id}-option-${index}`}
-                                value={option}
-                                className='mr-2 sm:mr-3 shadcn-radio'
-                                checked={
-                                  answers[question.id.toString()] === option
-                                }
-                                onChange={() =>
-                                  handleSelectAnswer(
-                                    question.id.toString(),
-                                    option
-                                  )
-                                }
-                              />
-                              <Label
-                                htmlFor={`${question.id}-option-${index}`}
-                                className='cursor-pointer font-medium text-base sm:text-lg w-full'>
-                                {option}
-                              </Label>
-                            </div>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                    </div>
-                  </div>
-                ))}
+                {[...section.questions]
+                  .sort((a, b) => questionNumberMap[a.id.toString()] - questionNumberMap[b.id.toString()])
+                  .map((question, index) => (
+                    <QuestionCard
+                      key={question.id}
+                      question={question}
+                      answer={answers[question.id.toString()] || '_NONE_'}
+                      onSelectAnswer={handleSelectAnswer}
+                      questionNumber={questionNumberMap[question.id.toString()]}
+                    />
+                  ))}
               </div>
             </div>
           ))}
