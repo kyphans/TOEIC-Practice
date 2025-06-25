@@ -6,6 +6,7 @@ import { useAnswersStore } from "@/app/store/answers";
 import { useTimerStore } from "@/app/store/timer";
 import { useEffect } from "react";
 import { AlertCircle } from "lucide-react";
+import React from "react";
 
 interface QuestionGridProps {
   questions: Question[];
@@ -14,7 +15,7 @@ interface QuestionGridProps {
   onSubmitTest?: () => void;
 }
 
-export function QuestionGrid({ questions, testId, testName, onSubmitTest }: QuestionGridProps) {
+export const QuestionGrid = React.memo(function QuestionGrid({ questions, testId, testName, onSubmitTest }: QuestionGridProps) {
   const { getAnswersByTestId, initAnswers } = useAnswersStore();
   const { timeLeft, decrementTime } = useTimerStore();
 
@@ -156,4 +157,4 @@ export function QuestionGrid({ questions, testId, testName, onSubmitTest }: Ques
       </div>
     </div>
   );
-} 
+}); 

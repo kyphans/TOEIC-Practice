@@ -1,136 +1,250 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from '@neondatabase/serverless';
+import { pool } from '@/lib/db';
+import { auth } from '@clerk/nextjs/server';
 
 export async function POST(req: NextRequest) {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  console.log('[POST /api/exams] Start');
   const client = await pool.connect();
   try {
+    console.log('[POST /api/exams] Parsing request body...');
     const { testName, description, strategy, created_by, questions } = await req.json();
     // Validate payload
     if (!testName || typeof testName !== 'string' || !testName.trim()) {
+      console.log('[POST /api/exams] Missing testName');
       return NextResponse.json({ error: 'Exam test name is required' }, { status: 400 });
     }
     if (!Array.isArray(questions) || questions.length === 0) {
+      console.log('[POST /api/exams] Missing questions array');
       return NextResponse.json({ error: 'Questions array is required' }, { status: 400 });
     }
     for (const q of questions) {
       if (!q || typeof q !== 'object') {
+        console.log('[POST /api/exams] Invalid question format', q);
         return NextResponse.json({ error: 'Invalid question format' }, { status: 400 });
       }
       if (!q.type || !q.section || !q.part || !q.description || !q.template || !Array.isArray(q.template.options)) {
+        console.log('[POST /api/exams] Missing question fields', q);
         return NextResponse.json({ error: 'Missing question fields' }, { status: 400 });
       }
     }
 
+    // Lấy trước section_id cho tất cả các type
+    const sectionNames = [...new Set(questions.map(q => q.type))];
+    console.log('[POST /api/exams] Fetching section ids for:', sectionNames);
+    const sectionRes = await client.query(
+      `SELECT id, name FROM question_sections WHERE name = ANY($1)`,
+      [sectionNames]
+    );
+    const sectionMap = Object.fromEntries(sectionRes.rows.map((r: any) => [r.name, r.id]));
+    console.log('[POST /api/exams] Section map:', sectionMap);
+
+    // Lấy trước question_type_id (mặc định là 'sentence')
+    const questionTypeName = 'sentence';
+    console.log('[POST /api/exams] Fetching question_type_id for:', questionTypeName);
+    const typeRes = await client.query(
+      `SELECT id FROM question_types WHERE name = $1`,
+      [questionTypeName]
+    );
+    if (!typeRes.rows.length) throw new Error(`Question type not found: ${questionTypeName}`);
+    const questionTypeId = typeRes.rows[0].id;
+    console.log('[POST /api/exams] questionTypeId:', questionTypeId);
+
+    console.log('[POST /api/exams] Begin transaction');
     await client.query('BEGIN');
 
     // 1. Create new exam
+    console.log('[POST /api/exams] Inserting exam...');
     const examResult = await client.query(
       'INSERT INTO exams (title, description, total_questions, strategy, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id',
       [testName, description || null, questions.length, strategy || 'manual', created_by || null]
     );
     const examId = examResult.rows[0].id;
+    console.log(`[POST /api/exams] Exam inserted with id: ${examId}`);
 
-    for (const q of questions) {
+    // Chuẩn bị dữ liệu cho bulk insert
+    const questionIndexMap = new Map(); // Map index -> questionId
+    const choicesToInsert = [];
+    const mediaToInsert = [];
+
+    // 2. Insert questions (nếu chưa tồn tại)
+    for (const [idx, q] of questions.entries()) {
+      console.log(`[POST /api/exams] Processing question ${idx + 1}/${questions.length}`);
       let questionId = q.existedIDInDB;
-
       if (!questionId) {
-        // 1. Lấy section_id từ question_sections với name = type
-        const sectionRes = await client.query(
-          'SELECT id FROM question_sections WHERE name = $1',
-          [q.type]
-        );
-        if (!sectionRes.rows.length) throw new Error(`Section not found: ${q.type}`);
-        const section_id = sectionRes.rows[0].id;
-
-        // 2. Lấy question_type_id từ question_types với name = description (mapping cứng thành 'sentence')
-        const questionTypeName = 'sentence';
-        const typeRes = await client.query(
-          'SELECT id FROM question_types WHERE name = $1',
-          [questionTypeName]
-        );
-        if (!typeRes.rows.length) throw new Error(`Question type not found: ${questionTypeName}`);
-        const question_type_id = typeRes.rows[0].id;
-
-        // 3. Insert vào questions
-        const questionResult = await client.query(
+        console.log(`[POST /api/exams] Inserting question for type: ${q.type}`);
+        const res = await client.query(
           'INSERT INTO questions (content, correct_answer, section_id, question_type_id, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-          [q.template.question, q.template.options[0], section_id, question_type_id, created_by || null]
+          [q.template.question, q.template.options[0], sectionMap[q.type], questionTypeId, created_by || null]
         );
-        questionId = questionResult.rows[0].id;
-
-        // 4. Insert vào question_choices
+        questionId = res.rows[0].id;
+        console.log(`[POST /api/exams] Question inserted with id: ${questionId}`);
+        // Bulk choices
         for (let i = 0; i < q.template.options.length; i++) {
           const opt = q.template.options[i];
-          const label = String.fromCharCode(65 + i); // 'A', 'B', ...
-          await client.query(
-            'INSERT INTO question_choices (question_id, label, content) VALUES ($1, $2, $3)',
-            [questionId, label, opt]
-          );
+          const label = String.fromCharCode(65 + i);
+          choicesToInsert.push([questionId, label, opt]);
         }
-
-        // 5. Insert vào question_media nếu có
+        // Bulk media
         if (q.template.image && q.template.image.trim()) {
-          await client.query(
-            'INSERT INTO question_media (question_id, media_type, content) VALUES ($1, $2, $3)',
-            [questionId, 'image', q.template.image]
-          );
+          mediaToInsert.push([questionId, 'image', q.template.image]);
         }
         if (q.template.audio && q.template.audio.trim()) {
-          await client.query(
-            'INSERT INTO question_media (question_id, media_type, content) VALUES ($1, $2, $3)',
-            [questionId, 'audio', q.template.audio]
-          );
+          mediaToInsert.push([questionId, 'audio', q.template.audio]);
         }
         if (q.template.transcript && q.template.transcript.trim()) {
-          await client.query(
-            'INSERT INTO question_media (question_id, media_type, content) VALUES ($1, $2, $3)',
-            [questionId, 'transcript', q.template.transcript]
-          );
+          mediaToInsert.push([questionId, 'transcript', q.template.transcript]);
         }
       }
+      questionIndexMap.set(idx, questionId);
+    }
 
-      // 6. Snapshot vào exam_questions
+    // Bulk insert choices
+    if (choicesToInsert.length) {
+      // Log chi tiết từng choices theo questionId
+      const choicesByQuestion: Record<string, {label: string, content: string}[]> = {};
+      for (const [questionId, label, content] of choicesToInsert) {
+        const qid = String(questionId);
+        if (!choicesByQuestion[qid]) choicesByQuestion[qid] = [];
+        choicesByQuestion[qid].push({ label, content });
+      }
+      console.log('[POST /api/exams] Bulk inserting choices for questions:', Object.keys(choicesByQuestion).length);
+      for (const [qid, choices] of Object.entries(choicesByQuestion)) {
+        console.log(`[POST /api/exams]   QuestionId: ${qid}, Choices:`, choices);
+      }
+      console.log(`[POST /api/exams] Bulk inserting ${choicesToInsert.length} choices...`);
+      const values = choicesToInsert.map((_, i) => `($${i*3+1}, $${i*3+2}, $${i*3+3})`).join(',');
+      await client.query(
+        `INSERT INTO question_choices (question_id, label, content) VALUES ${values}`,
+        choicesToInsert.flat()
+      );
+    }
+    // Bulk insert media
+    if (mediaToInsert.length) {
+      console.log(`[POST /api/exams] Bulk inserting ${mediaToInsert.length} media...`);
+      const values = mediaToInsert.map((_, i) => `($${i*3+1}, $${i*3+2}, $${i*3+3})`).join(',');
+      await client.query(
+        `INSERT INTO question_media (question_id, media_type, content) VALUES ${values}`,
+        mediaToInsert.flat()
+      );
+    }
+
+    // 3. Snapshot vào exam_questions và exam_question_choices (batch insert)
+    const examQuestionsToInsert = [];
+    const examQuestionsMap = []; // Lưu mapping: idx -> {questionId, examQuestionData}
+    for (const [idx, q] of questions.entries()) {
+      const questionId = questionIndexMap.get(idx);
+      // Lấy dữ liệu question (chỉ lấy cột cần thiết)
       const questionDataArr = await client.query(
-        'SELECT * FROM questions WHERE id = $1',
+        'SELECT content, correct_answer, difficulty, topic, question_type_id FROM questions WHERE id = $1',
         [questionId]
       );
       const questionData = questionDataArr.rows[0];
-      const examQuestionResult = await client.query(
-        'INSERT INTO exam_questions (exam_id, original_question_id, content, correct_answer, difficulty, topic, question_type_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-        [
-          examId,
-          questionId,
-          questionData.content,
-          questionData.correct_answer,
-          questionData.difficulty,
-          questionData.topic,
-          questionData.question_type_id,
-        ]
+      examQuestionsToInsert.push([
+        examId,
+        questionId,
+        questionData.content,
+        questionData.correct_answer,
+        questionData.difficulty,
+        questionData.topic,
+        questionData.question_type_id,
+      ]);
+      examQuestionsMap.push({ idx, questionId });
+    }
+    // Batch insert exam_questions
+    let examQuestionIds = [];
+    if (examQuestionsToInsert.length) {
+      const values = examQuestionsToInsert.map((_, i) => `($${i*7+1}, $${i*7+2}, $${i*7+3}, $${i*7+4}, $${i*7+5}, $${i*7+6}, $${i*7+7})`).join(',');
+      const res = await client.query(
+        `INSERT INTO exam_questions (exam_id, original_question_id, content, correct_answer, difficulty, topic, question_type_id) VALUES ${values} RETURNING id` ,
+        examQuestionsToInsert.flat()
       );
-      const examQuestionId = examQuestionResult.rows[0].id;
-
-      // 7. Snapshot choices vào exam_question_choices
+      examQuestionIds = res.rows.map(r => r.id);
+    }
+    // Batch insert exam_question_choices
+    const allExamQuestionChoices = [];
+    for (let i = 0; i < examQuestionsMap.length; i++) {
+      const { idx, questionId } = examQuestionsMap[i];
+      const examQuestionId = examQuestionIds[i];
+      // Lấy choices
       const choices = await client.query(
         'SELECT label, content FROM question_choices WHERE question_id = $1',
         [questionId]
       );
       for (const choice of choices.rows) {
-        await client.query(
-          'INSERT INTO exam_question_choices (exam_question_id, label, content) VALUES ($1, $2, $3)',
-          [examQuestionId, choice.label, choice.content]
-        );
+        allExamQuestionChoices.push([examQuestionId, choice.label, choice.content]);
       }
     }
+    if (allExamQuestionChoices.length) {
+      const values = allExamQuestionChoices.map((_, i) => `($${i*3+1}, $${i*3+2}, $${i*3+3})`).join(',');
+      await client.query(
+        `INSERT INTO exam_question_choices (exam_question_id, label, content) VALUES ${values}`,
+        allExamQuestionChoices.flat()
+      );
+    }
 
+    console.log('[POST /api/exams] Commit transaction');
     await client.query('COMMIT');
+    console.log('[POST /api/exams] Success');
     return NextResponse.json({ success: true, examId });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error(error);
+    console.error('[POST /api/exams] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   } finally {
     client.release();
-    await pool.end();
+    console.log('[POST /api/exams] Connection closed');
+  }
+}
+
+export async function GET(req: Request) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Get query params
+  const { searchParams } = new URL(req.url);
+  const index = parseInt(searchParams.get('index') || '1', 10); // page index (1-based)
+  const pageSize = parseInt(searchParams.get('pageSize') || '50', 10); // default 50
+  const offset = (index - 1) * pageSize;
+
+  try {
+    // Get total exams
+    const totalResult = await pool.query(
+      'SELECT COUNT(*)::int AS total FROM exams'
+    );
+    const total = totalResult.rows[0]?.total || 0;
+
+    // Get paginated exams
+    const exams = await pool.query(
+      `
+        SELECT 
+          e.id,
+          e.title,
+          e.description,
+          e.total_questions,
+          e.strategy,
+          e.created_by,
+          e.created_at
+        FROM exams e
+        ORDER BY e.id DESC
+        LIMIT $1 OFFSET $2
+      `,
+      [pageSize, offset]
+    );
+    // Format data
+    const formattedExams = exams.rows.map((e: any) => ({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      totalQuestions: e.total_questions,
+      strategy: e.strategy,
+      createdBy: e.created_by,
+      createdAt: e.created_at,
+    }));
+    return NextResponse.json({ exams: formattedExams, total });
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 } 

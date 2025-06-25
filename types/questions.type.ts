@@ -3,6 +3,8 @@ export type QuestionResponse = {
   content: string;
   choices: string[];
   correctAnswer: string;
+  difficulty: string | null;
+  topic: string | null;
   sectionName: string;
   typeName: string;
   createdAt: string;

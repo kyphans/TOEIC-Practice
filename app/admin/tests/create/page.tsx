@@ -32,6 +32,7 @@ import { QuestionTemplate, Template } from './components/types';
 export default function CreateTest() {
   // ===== STATE =====
   const [testName, setTestName] = useState('Example Test Title');
+  const [description, setDescription] = useState('');
 
   const [selectedQuestions, setSelectedQuestions] = useState<
     QuestionTemplate[]
@@ -360,7 +361,8 @@ export default function CreateTest() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           testName,
-          questions: selectedQuestions
+          questions: selectedQuestions,
+          description
         })
       });
       const data = await res.json();
@@ -463,16 +465,30 @@ export default function CreateTest() {
             </Button>
           </div>
 
-          <div className='md:col-span-3 py-6 pr-6'>
-            <div className='flex justify-between items-center mb-4'>
-              <h2 className='text-xl font-black'>Test Name</h2>
+          <div className='md:col-span-3 py-6 pr-6 flex gap-4'>
+            <div>
+              <div className='flex justify-between items-center mb-4'>
+                <h2 className='text-xl font-black'>Test Name</h2>
+              </div>
+              <Input
+                type='text'
+                value={testName}
+                onChange={(e) => setTestName(e.target.value)}
+                className='brutalist-input w-full text-xl font-bold'
+              />
             </div>
-            <Input
-              type='text'
-              value={testName}
-              onChange={(e) => setTestName(e.target.value)}
-              className='brutalist-input w-full text-xl font-bold'
-            />
+
+            <div className='flex-1'>
+              <div className='flex justify-between items-center mb-4'>
+                <h2 className='text-xl font-black'>Description</h2>
+              </div>
+              <Input
+                type='text'
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className='brutalist-input w-full text-xl font-bold'
+              />
+            </div>
           </div>
         </div>
       </div>

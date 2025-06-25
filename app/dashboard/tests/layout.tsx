@@ -111,22 +111,9 @@ export default function TestsLayout({
         {/* Main content and QuestionGrid side by side */}
         <div className='flex flex-1 flex-row min-h-0'>
           {/* Main content (children) */}
-          <div className='flex-1 p-3 sm:p-6 overflow-y-auto min-w-0 max-h-[calc(100vh-76px)]'>
+          <div className='flex-1 overflow-y-auto min-w-0 max-h-[calc(100vh-76px)]'>
             {children}
           </div>
-          {/* QuestionGrid sticky right column */}
-          {isTestTaking && currentTestQuestions.length > 0 && currentTestId && (
-            <div className='hidden md:block w-80 flex-shrink-0'>
-              <div className=' top-0 p-2 sm:p-3 border-l-8 border-black bg-white z-50 h-[calc(100vh-76px)]'>
-                <QuestionGrid
-                  questions={currentTestQuestions}
-                  testId={currentTestId}
-                  testName={currentTestName}
-                  onSubmitTest={handleOpenSubmitModal}
-                />
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

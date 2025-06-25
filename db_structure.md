@@ -7,6 +7,7 @@
 ```sql
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
+    clerk_id VARCHAR(255);
     name VARCHAR(255),
     email VARCHAR(255) UNIQUE,
     password_hash TEXT,
@@ -185,3 +186,48 @@ CREATE TABLE review_histories (
   - Cột `anti_cheat_flags`, `browser_events` nếu cần chống gian lận.
 
 ---
+
+Index
+
+-- 📌 USERS
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
+
+-- 📌 QUESTIONS
+CREATE INDEX IF NOT EXISTS idx_questions_section_id ON questions(section_id);
+CREATE INDEX IF NOT EXISTS idx_questions_question_type_id ON questions(question_type_id);
+CREATE INDEX IF NOT EXISTS idx_questions_created_by ON questions(created_by);
+
+-- 📌 QUESTION_CHOICES
+CREATE INDEX IF NOT EXISTS idx_question_choices_question_id ON question_choices(question_id);
+
+-- 📌 QUESTION_MEDIA
+CREATE INDEX IF NOT EXISTS idx_question_media_question_id ON question_media(question_id);
+
+-- 📌 QUESTION_SECTIONS
+CREATE INDEX IF NOT EXISTS idx_question_sections_name ON question_sections(name);
+
+-- 📌 QUESTION_TYPES
+CREATE INDEX IF NOT EXISTS idx_question_types_name ON question_types(name);
+
+-- 📌 EXAMS
+CREATE INDEX IF NOT EXISTS idx_exams_created_by ON exams(created_by);
+
+-- 📌 EXAM_QUESTIONS
+CREATE INDEX IF NOT EXISTS idx_exam_questions_exam_id ON exam_questions(exam_id);
+CREATE INDEX IF NOT EXISTS idx_exam_questions_original_qid ON exam_questions(original_question_id);
+
+-- 📌 EXAM_QUESTION_CHOICES
+CREATE INDEX IF NOT EXISTS idx_exam_question_choices_eqid ON exam_question_choices(exam_question_id);
+
+-- 📌 EXAM_ATTEMPTS
+CREATE INDEX IF NOT EXISTS idx_exam_attempts_user_id ON exam_attempts(user_id);
+CREATE INDEX IF NOT EXISTS idx_exam_attempts_exam_id ON exam_attempts(exam_id);
+
+-- 📌 EXAM_ANSWERS
+CREATE INDEX IF NOT EXISTS idx_exam_answers_attempt_id ON exam_answers(exam_attempt_id);
+CREATE INDEX IF NOT EXISTS idx_exam_answers_question_id ON exam_answers(exam_question_id);
+
+-- 📌 REVIEW_HISTORIES
+CREATE INDEX IF NOT EXISTS idx_review_histories_attempt_id ON review_histories(exam_attempt_id);
+CREATE INDEX IF NOT EXISTS idx_review_histories_user_id ON review_histories(user_id);
