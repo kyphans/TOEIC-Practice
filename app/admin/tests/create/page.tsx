@@ -1,243 +1,231 @@
-"use client"
+'use client';
 
-import { useState, useEffect, useRef } from "react"
-import { DndContext, DragEndEvent, useDraggable, useDroppable, DragStartEvent } from "@dnd-kit/core"
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { GripVertical, Save, X, Plus, ArrowDownAZ, ArrowUpAZ, Loader2, CheckCircle2 } from "lucide-react"
-import { Question } from "./components/types"
-import { questionTemplates } from "./components/templates"
-import { QuestionFields } from "./components/QuestionFields"
-import { QuestionTemplates } from "./components/QuestionTemplates"
-import { TemplatePickerDialog } from "./components/TemplatePickerDialog"
-import { useToast } from "@/components/ui/use-toast"
-import { QuestionGridCreate } from "./components/QuestionGridCreate"
-import { ImportQuestionsDialog } from './components/ImportQuestionsDialog'
-
-function PlusButton({ 
-  index, 
-  isDraggingTemplate, 
-  onAddTemplate 
-}: { 
-  index: number;
-  isDraggingTemplate: boolean;
-  onAddTemplate: (template: Question) => void;
-}) {
-  const [showPicker, setShowPicker] = useState(false);
-  const { setNodeRef, isOver } = useDroppable({
-    id: `question-plus-${index}`,
-  });
-
-  return (
-    <>
-      <div 
-        ref={setNodeRef}
-        className="h-[50px]"
-      >
-        <button
-          onClick={() => setShowPicker(true)}
-          className={`w-full h-full border-2 border-dashed rounded-md flex items-center justify-center bg-white transition-all ${
-            (isOver && isDraggingTemplate) 
-              ? 'border-primary bg-primary/10' 
-              : 'border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          <Plus className={`h-6 w-6 ${
-            (isOver && isDraggingTemplate) ? 'text-primary' : 'text-gray-400'
-          }`} />
-        </button>
-      </div>
-
-      <TemplatePickerDialog
-        open={showPicker}
-        onOpenChange={setShowPicker}
-        onSelectTemplate={onAddTemplate}
-      />
-    </>
-  );
-}
-
-function DroppableQuestions({ 
-  children, 
-  isDraggingTemplate,
-  onAddToStart 
-}: { 
-  children: React.ReactNode;
-  isDraggingTemplate: boolean;
-  onAddToStart: (template: Question) => void;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: 'questions',
-  });
-
-  return (
-    <div 
-      ref={setNodeRef}
-      className={`questions-container min-h-[200px] p-4 border-2 border-dashed transition-colors duration-200 ${
-        isOver && isDraggingTemplate
-          ? 'border-primary bg-primary/5' 
-          : 'border-gray-200'
-      }`}
-    >
-      <div className="mb-8">
-        <PlusButton 
-          index={-1} 
-          isDraggingTemplate={isDraggingTemplate}
-          onAddTemplate={onAddToStart}
-        />
-      </div>
-
-      {children}
-    </div>
-  );
-}
-
-function SortableQuestion({ 
-  question, 
-  index,
-  isDraggingTemplate,
-  onRemove,
-  onAddAfter,
-  selectedQuestions,
-  setSelectedQuestions,
-  sortOrder 
-}: { 
-  question: Question;
-  index: number;
-  isDraggingTemplate: boolean;
-  onRemove: () => void;
-  onAddAfter: (template: Question) => void;
-  selectedQuestions: Question[];
-  setSelectedQuestions: (questions: Question[]) => void;
-  sortOrder: "newest" | "oldest";
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({
-    id: question.id,
-    data: {
-      type: 'question',
-      question,
-      index
-    }
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  // Tính số thứ tự dựa trên sortOrder
-  const displayNumber = sortOrder === "newest" 
-    ? index + 1 
-    : selectedQuestions.length - index;
-
-  return (
-    <>
-      <div className="question-item relative mb-8">
-        <Card
-          ref={setNodeRef}
-          style={style}
-          className={`brutalist-card p-4 ${isDragging ? 'opacity-50 shadow-lg z-10' : ''}`}
-        >
-          <div className="flex justify-between items-start">
-            <div {...attributes} {...listeners} className="flex items-center gap-2 cursor-grab active:cursor-grabbing">
-              <GripVertical className="h-5 w-5" />
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-8 h-8 text-sm font-bold bg-primary text-white rounded-full">
-                    {displayNumber}
-                  </span>
-                  <h3 className="font-bold">
-                    {question.section} - Part {question.part}
-                  </h3>
-                </div>
-                <p className="text-sm text-gray-600 mt-1">{question.description}</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              className="hover:bg-red-100 hover:text-red-500"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="mt-4">
-            <QuestionFields 
-              question={question}
-              index={index}
-              selectedQuestions={selectedQuestions}
-              setSelectedQuestions={setSelectedQuestions}
-            />
-          </div>
-        </Card>
-        
-        <div className="mt-2">
-          <PlusButton 
-            index={index} 
-            isDraggingTemplate={isDraggingTemplate}
-            onAddTemplate={onAddAfter}
-          />
-        </div>
-      </div>
-    </>
-  );
-}
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
+import { QuestionResponse } from '@/types/questions.type';
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import {
+  ArrowDownAZ,
+  ArrowUpAZ,
+  FileText,
+  Loader2,
+  Save,
+  X
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import DroppableQuestions from './components/DroppableQuestions';
+import { ImportQuestionsDialog } from './components/ImportQuestionsDialog';
+import { QuestionGridCreate } from './components/QuestionGridCreate';
+import { QuestionTemplates } from './components/QuestionTemplates';
+import SortableQuestion from './components/SortableQuestion';
+import { QuestionTemplate, Template } from './components/types';
 
 export default function CreateTest() {
-  const [testName, setTestName] = useState(() => {
-    // Khôi phục từ localStorage khi component mount
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('draftTest');
-      if (saved) {
-        const { name } = JSON.parse(saved);
-        return name || "";
-      }
-    }
-    return "";
-  })
-  
-  const [selectedQuestions, setSelectedQuestions] = useState<Question[]>(() => {
-    // Khôi phục questions từ localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('draftTest');
-      if (saved) {
-        const { questions } = JSON.parse(saved);
-        return questions || [];
-      }
-    }
-    return [];
-  })
+  // ===== STATE =====
+  const [testName, setTestName] = useState('Example Test Title');
 
-  const [activeTab, setActiveTab] = useState<"listening" | "reading">("listening")
-  const [draggedTemplate, setDraggedTemplate] = useState<Question | null>(null)
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest")
-  const [isSaving, setIsSaving] = useState(false)
-  const { toast } = useToast()
-  const [showImportDialog, setShowImportDialog] = useState(false)
+  const [selectedQuestions, setSelectedQuestions] = useState<
+    QuestionTemplate[]
+  >([]);
+  const [activeTab, setActiveTab] = useState<'listening' | 'reading'>(
+    'listening'
+  );
+  const [draggedTemplate, setDraggedTemplate] =
+    useState<QuestionTemplate | null>(null);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
+  // ===== REFS =====
   // Ref để scroll đến câu hỏi
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // ===== EFFECTS =====
+  // Khi trang mount, nếu có localStorage.selectedQuestionsForExam thì map và setSelectedQuestions
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Load selectedQuestionsForExam
+    const raw = localStorage.getItem('selectedQuestionsForExam');
+    if (raw) {
+      try {
+        const rows = JSON.parse(raw) as QuestionResponse[];
+        if (Array.isArray(rows) && rows.length > 0) {
+          setSelectedQuestions((prev) => {
+            const mapped = mapQuestionsFromTable(rows);
+            return [...mapped, ...prev];
+          });
+        }
+      } catch {
+        // handle error silently
+      }
+      localStorage.removeItem('selectedQuestionsForExam');
+    }
+
+    // Load draftTest
+    const saved = localStorage.getItem('draftTest');
+    if (saved) {
+      try {
+        const { questions, name } = JSON.parse(saved);
+        if (questions) setSelectedQuestions((prev) => [...prev, ...questions]);
+        if (name) setTestName(name);
+      } catch {
+        // handle error silently
+      }
+    }
+  }, []);
 
   // Lưu vào localStorage mỗi khi có thay đổi
   useEffect(() => {
     if (testName || selectedQuestions.length > 0) {
-      localStorage.setItem('draftTest', JSON.stringify({
-        name: testName,
-        questions: selectedQuestions
-      }));
+      localStorage.setItem(
+        'draftTest',
+        JSON.stringify({
+          name: testName,
+          questions: selectedQuestions
+        })
+      );
     }
   }, [testName, selectedQuestions]);
+
+  // ===== FUNCTION HANDLERS & UTILS =====
+  // Mapper: từ data table sang QuestionTemplate[]
+  // ... existing code ...
+  function mapQuestionsFromTable(rows: QuestionResponse[]): QuestionTemplate[] {
+    return rows.map((row: QuestionResponse, idx: number) => {
+      let partNumber = 5; // default fallback
+      if (row.sectionName) {
+        const match = row.sectionName.match(/Part\s*(\d+)/i);
+        if (match && match[1]) {
+          partNumber = parseInt(match[1], 10);
+        }
+      }
+      const section =
+        partNumber >= 1 && partNumber <= 4 ? 'Listening' : 'Reading';
+      const sortedOptions = [
+        row.correctAnswer,
+        ...row.choices.filter((choice: string) => choice !== row.correctAnswer)
+      ];
+      const base = {
+        id: `imported-${Date.now()}-${idx}`,
+        existedIDInDB: row.id,
+        section,
+        part: partNumber,
+        icon: FileText,
+        description: row.typeName || ''
+      };
+      switch (partNumber) {
+        case 1:
+          return {
+            ...base,
+            type: 'Part 1',
+            template: {
+              question: row.content,
+              image:
+                row.media.find((_) => _.mediaType === 'image')?.content || '',
+              options: sortedOptions,
+              audio:
+                row.media.find((_) => _.mediaType === 'audio')?.content || '',
+              transcript:
+                row.media.find((_) => _.mediaType === 'transcript')?.content ||
+                ''
+            }
+          };
+        case 2:
+          return {
+            ...base,
+            type: 'Part 2',
+            template: {
+              question: row.content,
+              options: sortedOptions,
+              audio:
+                row.media.find((_) => _.mediaType === 'audio')?.content || '',
+              transcript:
+                row.media.find((_) => _.mediaType === 'transcript')?.content ||
+                ''
+            }
+          };
+        case 3:
+          return {
+            ...base,
+            type: 'Part 3',
+            template: {
+              question: row.content,
+              options: sortedOptions,
+              audio:
+                row.media.find((_) => _.mediaType === 'audio')?.content || '',
+              transcript:
+                row.media.find((_) => _.mediaType === 'transcript')?.content ||
+                ''
+            }
+          };
+        case 4:
+          return {
+            ...base,
+            type: 'Part 4',
+            template: {
+              question: row.content,
+              options: sortedOptions,
+              audio:
+                row.media.find((_) => _.mediaType === 'audio')?.content || '',
+              transcript:
+                row.media.find((_) => _.mediaType === 'transcript')?.content ||
+                ''
+            }
+          };
+        case 5:
+          return {
+            ...base,
+            type: 'Part 5',
+            template: {
+              question: row.content,
+              options: sortedOptions
+            }
+          };
+        case 6:
+          return {
+            ...base,
+            type: 'Part 6',
+            template: {
+              question: row.content,
+              image:
+                row.media.find((_) => _.mediaType === 'image')?.content || '',
+              options: sortedOptions
+            }
+          };
+        case 7:
+          return {
+            ...base,
+            type: 'Part 7',
+            template: {
+              question: row.content,
+              image:
+                row.media.find((_) => _.mediaType === 'image')?.content || '',
+              options: sortedOptions
+            }
+          };
+        default:
+          return {
+            ...base,
+            type: 'Part 5',
+            template: {
+              question: row.content,
+              options: sortedOptions
+            }
+          };
+      }
+    });
+  }
 
   const handleDragStart = (event: DragStartEvent) => {
     if (event.active.data.current?.type === 'template') {
@@ -247,7 +235,7 @@ export default function CreateTest() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (!over) {
       setDraggedTemplate(null);
       return;
@@ -256,7 +244,7 @@ export default function CreateTest() {
     // Handle dropping template
     if (active.data.current?.type === 'template') {
       const template = active.data.current.template;
-      const newQuestion: Question = {
+      const newQuestion: QuestionTemplate = {
         ...template,
         id: `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         template: JSON.parse(JSON.stringify(template.template))
@@ -264,10 +252,13 @@ export default function CreateTest() {
 
       // Nếu thả vào nút plus đầu tiên
       if (over.id === 'question-plus--1') {
-        setSelectedQuestions(prev => [newQuestion, ...prev]);
+        setSelectedQuestions((prev) => [newQuestion, ...prev]);
       }
       // Nếu thả vào nút plus của câu hỏi
-      else if (typeof over.id === 'string' && over.id.startsWith('question-plus-')) {
+      else if (
+        typeof over.id === 'string' &&
+        over.id.startsWith('question-plus-')
+      ) {
         const index = parseInt(over.id.split('-')[2]);
         const newQuestions = [...selectedQuestions];
         newQuestions.splice(index + 1, 0, newQuestion);
@@ -275,15 +266,15 @@ export default function CreateTest() {
       }
       // Nếu thả vào khu vực chung
       else if (over.id === 'questions') {
-        setSelectedQuestions(prev => [...prev, newQuestion]);
+        setSelectedQuestions((prev) => [...prev, newQuestion]);
       }
     }
 
     // Handle reordering questions
     if (active.data.current?.type === 'question' && over.id !== 'questions') {
-      const oldIndex = selectedQuestions.findIndex(q => q.id === active.id);
-      const newIndex = selectedQuestions.findIndex(q => q.id === over.id);
-      
+      const oldIndex = selectedQuestions.findIndex((q) => q.id === active.id);
+      const newIndex = selectedQuestions.findIndex((q) => q.id === over.id);
+
       if (oldIndex !== -1 && newIndex !== -1) {
         const newQuestions = [...selectedQuestions];
         const [movedQuestion] = newQuestions.splice(oldIndex, 1);
@@ -300,13 +291,13 @@ export default function CreateTest() {
   };
 
   const removeQuestion = (index: number) => {
-    const newQuestions = [...selectedQuestions]
-    newQuestions.splice(index, 1)
-    setSelectedQuestions(newQuestions)
-  }
+    const newQuestions = [...selectedQuestions];
+    newQuestions.splice(index, 1);
+    setSelectedQuestions(newQuestions);
+  };
 
-  const addQuestionAfter = (index: number, template: Question) => {
-    const newQuestion: Question = {
+  const addQuestionAfter = (index: number, template: QuestionTemplate) => {
+    const newQuestion: QuestionTemplate = {
       ...template,
       id: `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       template: JSON.parse(JSON.stringify(template.template))
@@ -316,96 +307,91 @@ export default function CreateTest() {
     setSelectedQuestions(newQuestions);
   };
 
-  const addQuestionToStart = (template: Question) => {
-    const newQuestion: Question = {
+  const addQuestionToStart = (template: QuestionTemplate) => {
+    const newQuestion: QuestionTemplate = {
       ...template,
       id: `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       template: JSON.parse(JSON.stringify(template.template))
     };
-    setSelectedQuestions(prev => [newQuestion, ...prev]);
+    setSelectedQuestions((prev) => [newQuestion, ...prev]);
   };
 
   const handleSort = () => {
-    const newOrder = sortOrder === "newest" ? "oldest" : "newest";
+    const newOrder = sortOrder === 'newest' ? 'oldest' : 'newest';
     setSortOrder(newOrder);
-    
+
     const sortedQuestions = [...selectedQuestions].sort((a, b) => {
       const aId = parseInt(a.id.split('-')[1]); // Get timestamp from id
       const bId = parseInt(b.id.split('-')[1]);
-      return newOrder === "newest" ? bId - aId : aId - bId;
+      return newOrder === 'newest' ? bId - aId : aId - bId;
     });
-    
+
     setSelectedQuestions(sortedQuestions);
   };
 
   const handleSave = async () => {
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       // Giả lập API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Log ra JSON
-      console.log('Test Data:', JSON.stringify({
-        name: testName,
-        questions: selectedQuestions.map(q => ({
-          type: q.type,
-          section: q.section,
-          part: q.part,
-          template: q.template
-        }))
-      }, null, 2))
+      console.log('selectedQuestions', selectedQuestions);
 
       // Xóa dữ liệu tạm trong localStorage
       localStorage.removeItem('draftTest');
 
       // Hiển thị thông báo thành công
       toast({
-        title: "Test saved successfully!",
+        title: 'Test saved successfully!',
         description: `Created test "${testName}" with ${selectedQuestions.length} questions.`,
-        duration: 3000,
-      })
-
+        duration: 3000
+      });
     } catch (error) {
       toast({
-        title: "Error saving test",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      })
+        title: 'Error saving test',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
+        duration: 3000
+      });
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleReset = () => {
-    if (window.confirm('Are you sure you want to reset all fields? This action cannot be undone.')) {
-      setTestName("");
+    if (
+      window.confirm(
+        'Are you sure you want to reset all fields? This action cannot be undone.'
+      )
+    ) {
+      setTestName('');
       setSelectedQuestions([]);
       localStorage.removeItem('draftTest');
       toast({
-        title: "Reset successful",
-        description: "All fields have been cleared.",
-        duration: 3000,
+        title: 'Reset successful',
+        description: 'All fields have been cleared.',
+        duration: 3000
       });
     }
-  }
+  };
 
   const scrollToQuestion = (index: number) => {
-    questionRefs.current[index]?.scrollIntoView({ 
+    questionRefs.current[index]?.scrollIntoView({
       behavior: 'smooth',
       block: 'center'
     });
   };
 
-  const handleImportQuestions = (importedQuestions: Question[]) => {
-    setSelectedQuestions(prev => [...prev, ...importedQuestions])
+  const handleImportQuestions = (importedQuestions: QuestionTemplate[]) => {
+    setSelectedQuestions((prev) => [...prev, ...importedQuestions]);
     toast({
-      title: "Questions imported successfully!",
+      title: 'Questions imported successfully!',
       description: `Added ${importedQuestions.length} questions to the test.`,
-      duration: 3000,
-    })
-  }
+      duration: 3000
+    });
+  };
 
+  // ===== RENDER =====
   return (
     <div className='space-y-8'>
       <div className='brutalist-container'>
@@ -450,7 +436,6 @@ export default function CreateTest() {
             </div>
             <Input
               type='text'
-              placeholder='Enter test name'
               value={testName}
               onChange={(e) => setTestName(e.target.value)}
               className='brutalist-input w-full text-xl font-bold'
@@ -485,7 +470,7 @@ export default function CreateTest() {
             <div className='brutalist-container'>
               <div className='flex justify-between items-center mb-4 sticky top-0 bg-white z-10'>
                 <h2 className='text-xl font-black'>Test Questions</h2>
-                <div className="flex items-center gap-2">
+                <div className='flex items-center gap-2'>
                   <Button
                     onClick={() => setShowImportDialog(true)}
                     variant='outline'
@@ -510,7 +495,7 @@ export default function CreateTest() {
                   </Button>
                 </div>
               </div>
-              <div className='max-h-[calc(100vh)] overflow-y-auto pr-4'>
+              <div className='pr-4'>
                 <DroppableQuestions
                   isDraggingTemplate={!!draggedTemplate}
                   onAddToStart={addQuestionToStart}>
@@ -552,4 +537,4 @@ export default function CreateTest() {
       />
     </div>
   );
-} 
+}

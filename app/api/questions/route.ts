@@ -29,11 +29,17 @@ export async function GET(req: Request) {
         q.correct_answer,
         qs.name AS section_name,
         qt.name AS type_name,
-        q.created_at
+        q.created_at,
+        COALESCE(JSON_AGG(
+          CASE WHEN qm.id IS NOT NULL THEN 
+            JSON_BUILD_OBJECT('mediaType', qm.media_type, 'content', qm.content)
+          END
+        ) FILTER (WHERE qm.id IS NOT NULL), '[]') AS media
       FROM questions q
       LEFT JOIN question_sections qs ON q.section_id = qs.id
       LEFT JOIN question_types qt ON q.question_type_id = qt.id
       LEFT JOIN question_choices qc ON q.id = qc.question_id
+      LEFT JOIN question_media qm ON q.id = qm.question_id
       GROUP BY q.id, qs.name, qt.name
       ORDER BY q.id
       LIMIT ${pageSize} OFFSET ${offset}
@@ -47,6 +53,7 @@ export async function GET(req: Request) {
       sectionName: q.section_name,
       typeName: q.type_name,
       createdAt: q.created_at,
+      media: q.media || [],
     }));
     return NextResponse.json({ questions: formattedQuestions, total });
   } catch (error) {

@@ -25,6 +25,10 @@ interface BrutalistTableProps<T> {
   }[];
   className?: string;
   isLoading?: boolean;
+  onSelectionChange?: (selectedRows: T[]) => void;
+  selectedRowIds?: (string | number)[];
+  rowIdKey?: keyof T;
+  toolbarActions?: React.ReactNode;
 }
 
 export function BrutalistTable<T extends Record<string, any>>({
@@ -39,11 +43,16 @@ export function BrutalistTable<T extends Record<string, any>>({
   filterOptions = [],
   className = '',
   isLoading = false,
+  onSelectionChange,
+  selectedRowIds: controlledSelectedRowIds,
+  rowIdKey = 'id',
+  toolbarActions,
 }: BrutalistTableProps<T>) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(controlledPageSize);
+  const [selectedRowIds, setSelectedRowIds] = useState<(string | number)[]>(controlledSelectedRowIds || []);
 
   // Nếu controlled, dùng props, nếu không thì dùng state nội bộ
   const currentPage = controlledPage !== undefined ? controlledPage : page;
@@ -84,6 +93,36 @@ export function BrutalistTable<T extends Record<string, any>>({
     }
   }, [filteredData, currentPage, currentPageSize, controlledPage, controlledPageSize, controlledTotal]);
 
+  // Multiple select state
+  React.useEffect(() => {
+    if (controlledSelectedRowIds) setSelectedRowIds(controlledSelectedRowIds);
+  }, [controlledSelectedRowIds]);
+
+  // Callback on change
+  React.useEffect(() => {
+    if (onSelectionChange) {
+      const selectedRows = data.filter(row => selectedRowIds.includes(String(row[rowIdKey])));
+      onSelectionChange(selectedRows);
+    }
+    // eslint-disable-next-line
+  }, [selectedRowIds, data]);
+
+  // Select all logic
+  const allIds = paginatedData.map(row => String(row[rowIdKey]));
+  const allSelected = allIds.length > 0 && allIds.every(id => selectedRowIds.includes(id));
+  const someSelected = allIds.some(id => selectedRowIds.includes(id));
+  const handleSelectAll = () => {
+    if (allSelected) {
+      setSelectedRowIds(ids => ids.filter(id => !allIds.includes(String(id))));
+    } else {
+      setSelectedRowIds(ids => Array.from(new Set([...ids, ...allIds])));
+    }
+  };
+  const handleSelectRow = (id: string | number) => {
+    const idStr = String(id);
+    setSelectedRowIds(ids => ids.includes(idStr) ? ids.filter(i => i !== idStr) : [...ids, idStr]);
+  };
+
   // Handlers
   const handleFilterChange = (key: string, value: any) => {
     if (value === "__all__") {
@@ -118,7 +157,7 @@ export function BrutalistTable<T extends Record<string, any>>({
 
   return (
     <div className={`relative ${className}`}>
-      <div className='flex gap-2 py-2'>
+      <div className='flex gap-2 py-2 items-center'>
         {searchKeys.length > 0 && (
           <Input
             type='text'
@@ -152,11 +191,23 @@ export function BrutalistTable<T extends Record<string, any>>({
             </SelectContent>
           </Select>
         ))}
+        {toolbarActions && (
+          <div className='ml-auto'>{toolbarActions}</div>
+        )}
       </div>
       <div className='brutalist-container'>
         <Table>
           <TableHeader className='bg-white border-b-4 border-black shadow-sm'>
             <TableRow>
+              <TableHead className='w-8 px-2'>
+                <input
+                  type='checkbox'
+                  checked={allSelected}
+                  ref={el => { if (el) el.indeterminate = !allSelected && someSelected; }}
+                  onChange={handleSelectAll}
+                  aria-label='Select all rows'
+                />
+              </TableHead>
               {columns.map((col) => (
                 <TableHead
                   key={String(col.key)}
@@ -169,22 +220,34 @@ export function BrutalistTable<T extends Record<string, any>>({
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className='text-center'>
+                <TableCell colSpan={columns.length + 1} className='text-center'>
                   No data
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedData.map((row, idx) => (
-                <TableRow key={row.id || idx}>
-                  {columns.map((col) => (
-                    <TableCell key={String(col.key)}>
-                      {col.render
-                        ? col.render(row)
-                        : String(row[String(col.key)] ?? '')}
+              paginatedData.map((row, idx) => {
+                const id = String(row[rowIdKey]);
+                const checked = selectedRowIds.includes(id);
+                return (
+                  <TableRow key={id || idx} className={checked ? 'bg-primary/10' : ''}>
+                    <TableCell className='w-8 px-2'>
+                      <input
+                        type='checkbox'
+                        checked={checked}
+                        onChange={() => handleSelectRow(id)}
+                        aria-label='Select row'
+                      />
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
+                    {columns.map((col) => (
+                      <TableCell key={String(col.key)}>
+                        {col.render
+                          ? col.render(row)
+                          : String(row[String(col.key)] ?? '')}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

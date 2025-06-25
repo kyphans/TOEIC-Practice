@@ -1,5 +1,4 @@
-
-export type Question = {
+export type QuestionResponse = {
   id: number;
   content: string;
   choices: string[];
@@ -7,4 +6,5 @@ export type Question = {
   sectionName: string;
   typeName: string;
   createdAt: string;
+  media: { mediaType: string | null; content: string | null }[];
 };

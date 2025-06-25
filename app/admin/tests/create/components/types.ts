@@ -10,7 +10,7 @@ export interface BaseTemplate {
 }
 
 export interface Part1Template extends BaseTemplate {
-  type: "Part1"
+  type: "Part 1"
   template: {
     question: string
     image: string
@@ -21,7 +21,7 @@ export interface Part1Template extends BaseTemplate {
 }
 
 export interface Part2Template extends BaseTemplate {
-  type: "Part2"
+  type: "Part 2"
   template: {
     question: string
     options: string[]
@@ -31,31 +31,27 @@ export interface Part2Template extends BaseTemplate {
 }
 
 export interface Part3Template extends BaseTemplate {
-  type: "Part3"
+  type: "Part 3"
   template: {
-    conversation: string
-    questions: Array<{
-      question: string
-      options: string[]
-    }>
+    question: string
+    options: string[]
     audio: string
+    transcript: string
   }
 }
 
 export interface Part4Template extends BaseTemplate {
-  type: "Part4"
+  type: "Part 4"
   template: {
-    conversation: string
-    questions: Array<{
-      question: string
-      options: string[]
-    }>
+    question: string
+    options: string[]
     audio: string
+    transcript: string
   }
 }
 
 export interface Part5Template extends BaseTemplate {
-  type: "Part5"
+  type: "Part 5"
   template: {
     question: string
     options: string[]
@@ -63,31 +59,27 @@ export interface Part5Template extends BaseTemplate {
 }
 
 export interface Part6Template extends BaseTemplate {
-  type: "Part6"
+  type: "Part 6"
   template: {
-    passage?: string
-    passageImage?: string
-    passageType: "text" | "image"
-    questions: Array<{
-      number: number
-      options: string[]
-    }>
+    question: string
+    image: string
+    options: string[]
   }
 }
 
 export interface Part7Template extends BaseTemplate {
-  type: "Part7"
+  type: "Part 7"
   template: {
-    passage: string
-    questions: Array<{
-      question: string
-      options: string[]
-    }>
+    question: string
+    image: string
+    options: string[]
   }
 }
 
 export type Template = Part1Template | Part2Template | Part3Template | Part4Template | Part5Template | Part6Template | Part7Template
-export type Question = Template
+export type QuestionTemplate = Template & {
+  existedIDInDB?: number
+}
 
 export interface TemplateGroups {
   listening: Template[]

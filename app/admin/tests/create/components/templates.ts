@@ -5,7 +5,7 @@ export const questionTemplates: TemplateGroups = {
   listening: [
     {
       id: "photo-listening",
-      type: "Part1",
+      type: "Part 1",
       section: "Listening",
       part: 1,
       icon: Image,
@@ -20,7 +20,7 @@ export const questionTemplates: TemplateGroups = {
     },
     {
       id: "qa-listening",
-      type: "Part2",
+      type: "Part 2",
       section: "Listening",
       part: 2,
       icon: MessageSquare,
@@ -34,27 +34,23 @@ export const questionTemplates: TemplateGroups = {
     },
     {
       id: "conversation",
-      type: "Part3",
+      type: "Part 3",
       section: "Listening",
       part: 3,
       icon: Headphones,
       description: "Conversations with multiple questions",
       template: {
-        conversation: "",
-        questions: [
-          {
-            question: "",
-            options: ["", "", "", ""]
-          }
-        ],
-        audio: ""
+        question: "",
+        options: ["", "", "", ""],
+        audio: "",
+        transcript: ""
       }
     }
   ],
   reading: [
     {
       id: "sentence-completion",
-      type: "Part5",
+      type: "Part 5",
       section: "Reading",
       part: 5,
       icon: FileText,
@@ -66,38 +62,28 @@ export const questionTemplates: TemplateGroups = {
     },
     {
       id: "text-completion",
-      type: "Part6",
+      type: "Part 6",
       section: "Reading",
       part: 6,
       icon: FileText,
       description: "Complete the text",
       template: {
-        passage: "",
-        passageImage: "",
-        passageType: "text",
-        questions: [
-          {
-            number: 1,
-            options: ["", "", "", ""]
-          }
-        ]
+        question: "",
+        image: "",
+        options: ["", "", "", ""]
       }
     },
     {
       id: "reading-comprehension",
-      type: "Part7",
+      type: "Part 7",
       section: "Reading",
       part: 7,
       icon: FileText,
       description: "Reading comprehension",
       template: {
-        passage: "",
-        questions: [
-          {
-            question: "",
-            options: ["", "", "", ""]
-          }
-        ]
+        question: "",
+        image: "",
+        options: ["", "", "", ""]
       }
     }
   ]

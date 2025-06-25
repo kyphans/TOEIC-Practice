@@ -37,6 +37,17 @@ CREATE TABLE question_types (
 );
 ```
 
+### Bảng `question_media`
+
+```sql
+CREATE TABLE question_media (
+    id SERIAL PRIMARY KEY,
+    question_id INTEGER REFERENCES questions(id) ON DELETE CASCADE,
+    media_type ENUM('audio', 'image', 'transcript') NOT NULL,
+    content TEXT
+);
+```
+
 ### Bảng `questions`
 
 ```sql
