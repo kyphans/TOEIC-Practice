@@ -332,24 +332,57 @@ export default function CreateTest() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Giả lập API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Validate trước khi gửi
+      if (!testName.trim()) {
+        toast({
+          title: 'Test name is required',
+          description: 'Please enter a test name.',
+          variant: 'destructive',
+          duration: 3000
+        });
+        setIsSaving(false);
+        return;
+      }
+      if (selectedQuestions.length === 0) {
+        toast({
+          title: 'No questions selected',
+          description: 'Please add at least one question to the test.',
+          variant: 'destructive',
+          duration: 3000
+        });
+        setIsSaving(false);
+        return;
+      }
 
-      console.log('selectedQuestions', selectedQuestions);
+      // Gọi API tạo đề thi
+      const res = await fetch('/api/exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testName,
+          questions: selectedQuestions
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save test');
+      }
 
       // Xóa dữ liệu tạm trong localStorage
       localStorage.removeItem('draftTest');
 
-      // Hiển thị thông báo thành công
       toast({
         title: 'Test saved successfully!',
         description: `Created test "${testName}" with ${selectedQuestions.length} questions.`,
         duration: 3000
       });
-    } catch (error) {
+      // Optionally reset form
+      setTestName('');
+      setSelectedQuestions([]);
+    } catch (error: any) {
       toast({
         title: 'Error saving test',
-        description: 'Something went wrong. Please try again.',
+        description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
         duration: 3000
       });
