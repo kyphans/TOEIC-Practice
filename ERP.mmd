@@ -58,6 +58,7 @@ exams {
   INTEGER total_questions
   ENUM strategy
   ENUM difficulty
+  TEXT section_names
   INTEGER created_by FK
   TIMESTAMP created_at
 }
@@ -71,6 +72,7 @@ exam_questions {
   ENUM difficulty
   VARCHAR topic
   INTEGER question_type_id
+  INTEGER section_id FK
   TIMESTAMP created_at
 }
 
@@ -126,3 +128,5 @@ exam_questions ||--o{ exam_answers : answered_in
 
 exam_attempts ||--o{ exam_answers : includes
 exam_attempts ||--o{ review_histories : logged_in
+
+question_sections ||--o{ exam_questions : contains_section

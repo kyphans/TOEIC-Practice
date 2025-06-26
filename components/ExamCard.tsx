@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, BarChart } from "lucide-react";
 
 interface ExamCardProps {
-  test: {
+  data: {
     id: number | string;
     name: string;
     description: string;
@@ -15,28 +15,28 @@ interface ExamCardProps {
   getDifficultyClass: (difficulty: string) => string;
 }
 
-export default function ExamCard({ test, getDifficultyClass }: ExamCardProps) {
+export default function ExamCard({ data, getDifficultyClass }: ExamCardProps) {
   return (
     <div className="brutalist-card p-6">
-      <h3 className="text-xl font-bold mb-2">{test.name}</h3>
-      <p className="mb-4">{test.description}</p>
+      <h3 className="text-xl font-bold mb-2">{data.name}</h3>
+      <p className="mb-4">{data.description}</p>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        <span className={`inline-block px-3 py-1 text-sm font-bold ${getDifficultyClass(test.difficulty)}`}>
-          {test.difficulty}
+        <span className={`inline-block px-3 py-1 text-sm font-bold ${getDifficultyClass(data.difficulty)}`}>
+          {data.difficulty}
         </span>
-        <span className="inline-block bg-gray-200 px-3 py-1 text-sm font-bold flex items-center">
-          <Clock className="h-4 w-4 mr-1" /> {test.time} min
+        <span className="bg-gray-200 px-3 py-1 text-sm font-bold flex items-center">
+          <Clock className="h-4 w-4 mr-1" /> {data.time} min
         </span>
-        <span className="inline-block bg-gray-200 px-3 py-1 text-sm font-bold flex items-center">
-          <BarChart className="h-4 w-4 mr-1" /> {test.questions} questions
+        <span className="bg-gray-200 px-3 py-1 text-sm font-bold flex items-center">
+          <BarChart className="h-4 w-4 mr-1" /> {data.questions} questions
         </span>
       </div>
 
       <div className="mb-4">
         <h4 className="font-bold mb-2">Sections:</h4>
         <div className="flex gap-2">
-          {test.sections.map((section) => (
+          {data.sections.map((section) => (
             <span key={section} className="inline-block border-2 border-black px-3 py-1 text-sm font-bold">
               {section}
             </span>
@@ -44,7 +44,7 @@ export default function ExamCard({ test, getDifficultyClass }: ExamCardProps) {
         </div>
       </div>
 
-      <Link href={`/dashboard/tests/${test.id}`}>
+      <Link href={`/dashboard/tests/${data.id}`}>
         <Button className="brutalist-button w-full">Start Test</Button>
       </Link>
     </div>

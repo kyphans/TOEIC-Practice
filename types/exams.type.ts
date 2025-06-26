@@ -32,6 +32,7 @@ export type Exam = {
   strategy: string;
   sections: ExamSection[];
   difficulty: Difficulty;
+  section_names: SectionName[];
   createdBy: string | null;
   createdAt: string;
 };

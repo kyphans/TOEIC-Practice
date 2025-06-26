@@ -24,7 +24,7 @@ function getDifficultyClass(difficulty: string) {
 
 export default function TestManagement() {
   const [page, setPage] = useState(1)
-  const pageSize = 12
+  const pageSize = 10
   const { data, error, isLoading } = useSWR<ExamsResponse>(`/api/exams?index=${page}&pageSize=${pageSize}`, fetcher)
 
   return (
@@ -42,17 +42,17 @@ export default function TestManagement() {
       {error && <div className="text-red-500">Failed to load exams.</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data?.exams.map((exam) => (
+        {data?.exams?.map((exam) => (
           <ExamCard
             key={exam.id}
-            test={{
+            data={{
               id: exam.id,
               name: exam.title,
               description: exam.description || '',
               difficulty: exam.difficulty,
               time: 45, // Placeholder, update if you have time info
               questions: exam.totalQuestions,
-              sections: [], // Placeholder, update if you have section info
+              sections: exam.section_names,
             }}
             getDifficultyClass={getDifficultyClass}
           />

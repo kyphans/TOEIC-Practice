@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS questions (
     id SERIAL PRIMARY KEY,
     content TEXT,
     correct_answer TEXT,
-    difficulty difficulty_level,
+    difficulty difficulty_level DEFAULT 'easy',
     topic VARCHAR(100),
     section_id INTEGER REFERENCES question_sections(id),
     question_type_id INTEGER REFERENCES question_types(id),
@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS exams (
     total_questions INTEGER,
     difficulty difficulty_level,
     strategy exam_strategy NOT NULL,
+    section_names TEXT,
     created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -102,6 +103,7 @@ CREATE TABLE IF NOT EXISTS exam_questions (
     difficulty difficulty_level,
     topic VARCHAR(100),
     question_type_id INTEGER,
+    section_id INTEGER REFERENCES question_sections(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -162,6 +164,7 @@ CREATE INDEX IF NOT EXISTS idx_question_types_name ON question_types(name);
 CREATE INDEX IF NOT EXISTS idx_exams_created_by ON exams(created_by);
 CREATE INDEX IF NOT EXISTS idx_exam_questions_exam_id ON exam_questions(exam_id);
 CREATE INDEX IF NOT EXISTS idx_exam_questions_original_qid ON exam_questions(original_question_id);
+CREATE INDEX IF NOT EXISTS idx_exam_questions_section_id ON exam_questions(section_id);
 
 CREATE INDEX IF NOT EXISTS idx_exam_question_choices_eqid ON exam_question_choices(exam_question_id);
 CREATE INDEX IF NOT EXISTS idx_exam_attempts_user_id ON exam_attempts(user_id);

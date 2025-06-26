@@ -8,6 +8,12 @@ const SECTION_TIME: Record<SectionName, number> = {
   Reading: 4500,
 };
 
+/**
+ * @description Get exam detail - Endpoint: GET /api/exams/[exam_id]
+ * @param req - The request object
+ * @param params - The parameters object
+ * @returns The exam detail
+ */
 export async function GET(req: Request, { params }: { params: { exam_id: string } }) {
   const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

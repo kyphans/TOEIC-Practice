@@ -81,6 +81,7 @@
 | `description`     | `TEXT`                    | Mô tả ngắn         |
 | `total_questions` | `INTEGER`                 | Tổng số câu hỏi    |
 | `strategy`        | `ENUM('random','manual')` | Chiến lược tạo đề  |
+| `section_names`   | `TEXT`                    | Danh sách section  |
 | `created_by`      | `INTEGER`                 | FK đến `users(id)` |
 | `created_at`      | `TIMESTAMP`               | Ngày tạo đề        |
 
@@ -98,6 +99,7 @@
 | `difficulty`           | `ENUM('easy','medium','hard')` | Độ khó                    |
 | `topic`                | `VARCHAR(100)`                 | Chủ đề                    |
 | `question_type_id`     | `INTEGER`                      | Loại câu hỏi              |
+| `section_id`           | `INTEGER`                      | FK đến `question_sections(id)` |
 | `created_at`           | `TIMESTAMP`                    | Ngày snapshot             |
 
 ---
@@ -151,5 +153,11 @@
 | `viewed_at`       | `TIMESTAMP`   | Thời gian xem lại          |
 | `device_info`     | `TEXT`        | Thông tin thiết bị         |
 | `ip_address`      | `VARCHAR(45)` | Địa chỉ IP                 |
+
+---
+
+## Indexes
+
+- `idx_exam_questions_section_id` trên `exam_questions(section_id)`
 
 ---

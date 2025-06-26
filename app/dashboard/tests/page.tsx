@@ -1,89 +1,36 @@
 "use client"
 
-import Link from "next/link"
+import useSWR from "swr"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Clock, BarChart } from "lucide-react"
 import ExamCard from "@/components/ExamCard"
+import { fetcher } from "@/lib/query"
+import type { ExamsResponse } from "@/types/exams.type"
+
+function getDifficultyClass(difficulty: string) {
+  switch (difficulty) {
+    case "easy":
+      return "bg-green-200 text-green-800"
+    case "medium":
+      return "bg-yellow-200 text-yellow-800"
+    case "hard":
+      return "bg-red-200 text-red-800"
+    default:
+      return "bg-gray-200 text-gray-800"
+  }
+}
 
 export default function Tests() {
-  // Mock data for available tests
-  const availableTests = [
-    {
-      id: 1,
-      name: "TOEIC Test 1",
-      description: "A complete TOEIC test with listening and reading sections",
-      difficulty: "Medium",
-      time: 120,
-      sections: ["Listening", "Reading"],
-      questions: 200,
-    },
-    {
-      id: 2,
-      name: "TOEIC Test 2",
-      description: "Practice test focusing on business communication scenarios",
-      difficulty: "Hard",
-      time: 120,
-      sections: ["Listening", "Reading"],
-      questions: 200,
-    },
-    {
-      id: 3,
-      name: "TOEIC Listening Practice",
-      description: "Focused practice for the listening section only",
-      difficulty: "Medium",
-      time: 45,
-      sections: ["Listening"],
-      questions: 100,
-    },
-    {
-      id: 4,
-      name: "TOEIC Reading Practice",
-      description: "Focused practice for the reading section only",
-      difficulty: "Easy",
-      time: 75,
-      sections: ["Reading"],
-      questions: 100,
-    },
-    {
-      id: 5,
-      name: "TOEIC Quick Test",
-      description: "A shorter version of the TOEIC test for quick practice",
-      difficulty: "Medium",
-      time: 60,
-      sections: ["Listening", "Reading"],
-      questions: 100,
-    },
-    {
-      id: 6,
-      name: "TOEIC Advanced Test",
-      description: "Challenging test for advanced learners",
-      difficulty: "Hard",
-      time: 120,
-      sections: ["Listening", "Reading"],
-      questions: 200,
-    },
+  const [page, setPage] = useState(1)
+  const pageSize = 6
+  const { data, error, isLoading } = useSWR<any>(`/api/exams?difficulty=easy,medium,hard&group=true&pageSize=${pageSize}&index=${page}`, fetcher)
+
+  // API trả về dạng { easy: [...], medium: [...], hard: [...] }
+  const difficulties = [
+    { key: 'easy', label: 'Easy' },
+    { key: 'medium', label: 'Medium' },
+    { key: 'hard', label: 'Hard' },
   ]
-
-  // Group tests by difficulty
-  const groupedTests = {
-    Easy: availableTests.filter((test) => test.difficulty === "Easy"),
-    Medium: availableTests.filter((test) => test.difficulty === "Medium"),
-    Hard: availableTests.filter((test) => test.difficulty === "Hard"),
-  }
-
-  // Function to get difficulty class
-  const getDifficultyClass = (difficulty: string) => {
-    switch (difficulty) {
-      case "Easy":
-        return "difficulty-easy"
-      case "Medium":
-        return "difficulty-medium"
-      case "Hard":
-        return "difficulty-hard"
-      default:
-        return "difficulty-medium"
-    }
-  }
 
   return (
     <div className="space-y-8 p-4">
@@ -92,16 +39,53 @@ export default function Tests() {
         <p className="text-lg">Choose a test to practice and improve your TOEIC score.</p>
       </div>
 
-      {Object.entries(groupedTests).map(([difficulty, tests]) => (
-        <div key={difficulty} className="space-y-4">
-          <h2 className="text-2xl font-black">{difficulty} Tests</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {tests.map((test) => (
-              <ExamCard key={test.id} test={test} getDifficultyClass={getDifficultyClass} />
-            ))}
+      {isLoading && <div>Loading...</div>}
+      {error && <div className="text-red-500">Failed to load exams.</div>}
+
+      {difficulties.map(({ key, label }) => (
+        data?.[key]?.length > 0 && (
+          <div key={key} className="space-y-4">
+            <h2 className="text-2xl font-black">{label} Tests</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {data[key].map((exam: any) => (
+                <ExamCard
+                  key={exam.id}
+                  data={{
+                    id: exam.id,
+                    name: exam.title,
+                    description: exam.description || '',
+                    difficulty: exam.difficulty,
+                    time: 45, // Placeholder, update if you have time info
+                    questions: exam.totalQuestions,
+                    sections: exam.section_names,
+                  }}
+                  getDifficultyClass={getDifficultyClass}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )
       ))}
+
+      {/* Pagination controls */}
+      <div className="flex justify-center mt-8 gap-2">
+        <Button
+          className="brutalist-button"
+          disabled={page === 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        >
+          Previous
+        </Button>
+        <span className="px-4 py-2">Page {page}</span>
+        {/* Không thể xác định tổng số trang khi group, nên chỉ disable khi không có dữ liệu */}
+        <Button
+          className="brutalist-button"
+          disabled={Object.values(data || {}).every((arr: any) => !arr?.length)}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   )
 }
