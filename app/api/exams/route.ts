@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
+import { Difficulty } from '@/types/exams.type';
 
+/**
+ * Create a new exam
+ * @param req - The request body containing the exam details
+ * @returns The created exam ID
+ */
 export async function POST(req: NextRequest) {
   console.log('[POST /api/exams] Start');
   const client = await pool.connect();
@@ -196,6 +202,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Get all exams
+ * @param req - The request object
+ * @returns The list of exams
+ */
 export async function GET(req: Request) {
   const { userId } = await auth();
 
@@ -224,6 +235,7 @@ export async function GET(req: Request) {
           e.title,
           e.description,
           e.total_questions,
+          e.difficulty,
           e.strategy,
           e.created_by,
           e.created_at
@@ -239,6 +251,7 @@ export async function GET(req: Request) {
       title: e.title,
       description: e.description,
       totalQuestions: e.total_questions,
+      difficulty: e.difficulty ?? Difficulty.Easy,
       strategy: e.strategy,
       createdBy: e.created_by,
       createdAt: e.created_at,

@@ -1,26 +1,27 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { RadioGroup, Radio } from "@/components/ui/radio"
-import { Label } from "@/components/ui/label"
 import { useAnswersStore } from "@/app/store/answers"
-import { useTimerStore } from "@/app/store/timer"
-import useSWR from 'swr'
+import { QuestionGrid } from '@/components/QuestionGrid'
+import { SubmitTestDialog } from "@/components/SubmitTestDialog"
+import { Button } from "@/components/ui/button"
 import { fetcher } from '@/lib/query'
 import type { ExamDetailResponse } from '@/types/exams.type'
-import { checkAnswers } from '@/lib/testHelper'
-import { SubmitTestDialog } from "@/components/SubmitTestDialog"
-import { QuestionGrid } from '@/components/QuestionGrid'
+import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
+import useSWR from 'swr'
 import { QuestionCard } from "../../../../../components/QuestionCard"
 
 export default function TakeTest({ params }: { params: { id: string } }) {
+  // ====== Router & Store ======
   const router = useRouter()
   const testId = params.id
   const { setAnswer, getAnswersByTestId, initAnswers, clearAnswers } = useAnswersStore()
 
-  // Lấy đề thi thật bằng SWR
+  // ====== State ======
+  // State cho dialog xác nhận submit
+  const [showSubmitModal, setShowSubmitModal] = useState(false)
+
+  // ====== Lấy đề thi thật bằng SWR ======
   const { data, error, isLoading, isValidating } = useSWR<ExamDetailResponse>(
     `/api/exams/${testId}`,
     fetcher,
@@ -31,30 +32,66 @@ export default function TakeTest({ params }: { params: { id: string } }) {
     }
   );
 
-  console.log('data test', data);
+  // ====== Chuẩn hóa data trả về từ SWR ======
+  const examData = useMemo<ExamDetailResponse>(() => {
+    return data ?? {
+      id: 0,
+      name: '',
+      exam_attempt_id: 0,
+      sections: [],
+    };
+  }, [data]);
 
-  // State cho dialog xác nhận submit
-  const [showSubmitModal, setShowSubmitModal] = useState(false)
-
+  // ====== useEffect ======
+  // Điều hướng về trang test nếu không có exam_attempt_id
   useEffect(() => {
-    if (!isValidating && !data?.exam_attempt_id) {
+    if (!isValidating && !examData?.exam_attempt_id) {
       router.push('/dashboard/tests');
     }
-  }, [isValidating, data, error, router]);
+  }, [isValidating, examData, error, router]);
 
+  // Khởi tạo answers từ localStorage nếu có
   useEffect(() => {
-    // Khởi tạo answers từ localStorage nếu có
     initAnswers(testId)
   }, [testId, initAnswers])
 
-  const answers = getAnswersByTestId(testId)
+  // Lắng nghe thay đổi hash để scroll tới câu hỏi tương ứng
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash
+      if (hash) {
+        const element = document.querySelector(hash)
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" })
+        }
+      }
+    }
+    handleHashChange()
+    window.addEventListener("hashchange", handleHashChange)
+    return () => window.removeEventListener("hashchange", handleHashChange)
+  }, [])
 
-  // Tính toán câu hỏi đã trả lời/chưa trả lời
-  const allQuestions = data?.id ? data.sections.flatMap(section => section.questions) : []
-  const answeredQuestions = allQuestions.filter(q => answers[q.id?.toString?.()])
-  const unansweredQuestions = allQuestions.filter(q => !answers[q.id?.toString?.()])
+  // ====== Memoized Data ======
+  // Lấy answers từ localStorage
+  const answers = useMemo(() => getAnswersByTestId(testId), [testId, getAnswersByTestId])
 
-  // Đánh lại số thứ tự câu hỏi dựa trên part và thứ tự trong part
+  // Tính toán danh sách câu hỏi
+  const allQuestions = useMemo(() => 
+    examData.id ? examData.sections.flatMap(section => section.questions) : [], 
+    [examData]
+  )
+  // Câu hỏi đã trả lời
+  const answeredQuestions = useMemo(() => 
+    allQuestions.filter(q => answers[q.id?.toString?.()]), 
+    [allQuestions, answers]
+  )
+  // Câu hỏi chưa trả lời
+  const unansweredQuestions = useMemo(() => 
+    allQuestions.filter(q => !answers[q.id?.toString?.()]), 
+    [allQuestions, answers]
+  )
+
+  // ====== Đánh lại số thứ tự câu hỏi dựa trên part và thứ tự trong part ======
   // 1. Nhóm câu hỏi theo part
   const questionsByPart = allQuestions.reduce((acc, question) => {
     const part = question.part_code ? parseInt(question.part_code.replace(/[^0-9]/g, '')) || 0 : 0;
@@ -74,7 +111,7 @@ export default function TakeTest({ params }: { params: { id: string } }) {
     });
   });
 
-  // Chuyển đổi allQuestions (ExamQuestion[]) sang Question[] cho QuestionGrid
+  // Chuyển đổi allQuestions sang Question[] cho QuestionGrid
   const questionsForGrid = useMemo(() => allQuestions.map(q => ({
     id: q.id,
     question: q.question,
@@ -87,34 +124,27 @@ export default function TakeTest({ params }: { params: { id: string } }) {
     part: q.part_code ? parseInt(q.part_code.replace(/[^0-9]/g, '')) || 0 : 0
   })), [allQuestions])
 
-  // Handle scroll to question on hash change
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash
-      if (hash) {
-        const element = document.querySelector(hash)
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth" })
-        }
-      }
-    }
-
-    // Handle initial hash if exists
-    handleHashChange()
-
-    // Add hash change listener
-    window.addEventListener("hashchange", handleHashChange)
-    return () => window.removeEventListener("hashchange", handleHashChange)
-  }, [])
-
-  // Handle answer selection
+  // ====== Handler Functions ======
+  // Chọn đáp án cho câu hỏi
   const handleSelectAnswer = (questionId: string, answer: string) => {
     setAnswer(`${testId}-${questionId}`, answer)
   }
 
-  // Handle test submission
+  // Mở modal xác nhận submit
+  const handleOpenSubmitModal = () => {
+    setShowSubmitModal(true);
+  }
+  // Đóng modal xác nhận submit
+  const handleCloseSubmitModal = () => setShowSubmitModal(false)
+  // Xác nhận submit bài thi
+  const handleConfirmSubmit = () => {
+    setShowSubmitModal(false)
+    handleSubmitTest()
+  }
+  // Xử lý submit bài thi
   const handleSubmitTest = () => {
-    if (!data) return
+    if (!answers) return
+    console.log('submitted test', answers)
     // Có thể cần sửa lại checkAnswers nếu muốn dùng dữ liệu thật
     // const { correctCount, score } = checkAnswers(testId, answers)
     clearAnswers()
@@ -122,32 +152,19 @@ export default function TakeTest({ params }: { params: { id: string } }) {
     router.push(`/dashboard/tests/${testId}/results`)
   }
 
-  // Hàm mở modal khi nhấn Submit Test
-  const handleOpenSubmitModal = () => {
-    console.log('open submit modal')
-    setShowSubmitModal(true);
-  }
-  // Hàm đóng modal
-  const handleCloseSubmitModal = () => setShowSubmitModal(false)
-  // Hàm xác nhận submit
-  const handleConfirmSubmit = () => {
-    setShowSubmitModal(false)
-    handleSubmitTest()
-  }
-
-  const testName = data?.name || ''
+  // ====== Render ======
+  const testName = examData.name || ''
 
   if (isLoading || isValidating) return <div className='min-h-screen flex items-center justify-center'>Loading test...</div>
-  if (error || !data?.exam_attempt_id) return <div className='min-h-screen flex items-center justify-center'>Test not found.</div>
+  if (error || !examData.exam_attempt_id) return <div className='min-h-screen flex items-center justify-center'>Test not found.</div>
 
   return (
     <div className='min-h-screen bg-white'>
       <div className='container mx-auto flex flex-row min-h-screen'>
         {/* Main question content */}
-        <div
-          className={'p-3 sm:p-6 flex-1'}>
+        <div className={'p-3 sm:p-6 flex-1'}>
           {/* Question content */}
-          {data.sections?.map((section, sectionIndex) => (
+          {examData.sections.map((section, sectionIndex) => (
             <div key={sectionIndex} className='mb-8 sm:mb-12'>
               <h2 className='text-xl sm:text-2xl font-black uppercase border-b-2 sm:border-b-4 border-black pb-1 sm:pb-2 mb-4 sm:mb-6'>
                 {section.name} Section

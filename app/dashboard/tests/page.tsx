@@ -86,7 +86,7 @@ export default function Tests() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4">
       <div className="brutalist-container">
         <h1 className="text-3xl font-black mb-4">Practice Tests</h1>
         <p className="text-lg">Choose a test to practice and improve your TOEIC score.</p>

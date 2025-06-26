@@ -4,7 +4,7 @@
 
 :root {
   --primary: #0047ab; /* Strong blue */
-  --primary-light: #5499fa; /* Royal blue */
+  --primary-light: #deeafc; /* Royal blue */
   --primary-dark: #00008b; /* Dark blue */
   --secondary: #ff6b6b; /* Secondary color for hover states */
   --background: #ffffff;
@@ -135,7 +135,6 @@
 
 .test-option:hover {
   background-color: var(--primary-light); /* xanh nhạt hơn của primary */
-  color: white;
 }
 
 .test-option.selected:hover {

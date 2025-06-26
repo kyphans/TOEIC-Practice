@@ -49,7 +49,7 @@ export default function TestManagement() {
               id: exam.id,
               name: exam.title,
               description: exam.description || '',
-              difficulty: exam.strategy || 'manual',
+              difficulty: exam.difficulty,
               time: 45, // Placeholder, update if you have time info
               questions: exam.totalQuestions,
               sections: [], // Placeholder, update if you have section info

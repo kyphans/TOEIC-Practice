@@ -1,233 +1,155 @@
-# I. Thiết kế cơ sở dữ liệu bằng Neon
+# 🗂️ Cơ sở dữ liệu hệ thống thi trắc nghiệm
 
-## 🎯 1. Quản lý người dùng
+## 1. `users` – Quản lý người dùng
 
-### Bảng `users`
-
-```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    clerk_id VARCHAR(255);
-    name VARCHAR(255),
-    email VARCHAR(255) UNIQUE,
-    password_hash TEXT,
-    role ENUM('student', 'teacher', 'admin') NOT NULL DEFAULT 'student',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+| Cột             | Kiểu dữ liệu                          | Ghi chú                                    |
+| --------------- | ------------------------------------- | ------------------------------------------ |
+| `id`            | `SERIAL`                              | Khóa chính tự tăng                         |
+| `clerk_id`      | `VARCHAR(255)`                        | ID đồng bộ từ hệ thống đăng nhập bên ngoài |
+| `name`          | `VARCHAR(255)`                        | Tên người dùng                             |
+| `email`         | `VARCHAR(255)`                        | Email người dùng, duy nhất                 |
+| `password_hash` | `TEXT`                                | Mật khẩu đã mã hóa                         |
+| `role`          | `ENUM('student', 'teacher', 'admin')` | Vai trò người dùng, mặc định là `student`  |
+| `created_at`    | `TIMESTAMP`                           | Ngày tạo người dùng                        |
 
 ---
 
-## 📚 2. Ngân hàng câu hỏi
-### Bảng `question_sections`
+## 2. `question_sections` – Phân loại phần thi
 
-```sql
-CREATE TABLE question_sections (
-    id SERIAL PRIMARY KEY,
-    code VARCHAR(10), -- e.g. 'part1'
-    name VARCHAR(255) -- e.g. 'Photographs'
-);
-```
-
-### Bảng `question_types`
-
-```sql
-CREATE TABLE question_types (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) -- e.g. 'single_choice', 'multiple_choice', 'essay'
-);
-```
-
-### Bảng `question_media`
-
-```sql
-CREATE TABLE question_media (
-    id SERIAL PRIMARY KEY,
-    question_id INTEGER REFERENCES questions(id) ON DELETE CASCADE,
-    media_type ENUM('audio', 'image', 'transcript') NOT NULL,
-    content TEXT
-);
-```
-
-### Bảng `questions`
-
-```sql
-CREATE TABLE questions (
-    id SERIAL PRIMARY KEY,
-    content TEXT,
-    correct_answer TEXT,
-    difficulty ENUM('easy', 'medium', 'hard'),
-    topic VARCHAR(100),
-    section_id INTEGER REFERENCES question_sections(id), 
-    question_type_id INTEGER REFERENCES question_types(id),
-    created_by INTEGER REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Bảng `question_choices`
-
-```sql
-CREATE TABLE question_choices (
-    id SERIAL PRIMARY KEY,
-    question_id INTEGER REFERENCES questions(id) ON DELETE CASCADE,
-    label CHAR(1), -- A, B, C, D
-    content TEXT
-);
-```
+| Cột           | Kiểu dữ liệu                           | Ghi chú                           |
+| ------------- | -------------------------------------- | --------------------------------- |
+| `id`          | `SERIAL`                               | Khóa chính                        |
+| `code`        | `VARCHAR(10)`                          | Mã phần thi, ví dụ `part1`        |
+| `name`        | `VARCHAR(255)`                         | Tên phần thi, ví dụ `Photographs` |
+| `section_name`| `ENUM('Listening', 'Reading')`        | Tên section (Listening/Reading)   |
 
 ---
 
-## 🧠 3. Tạo đề thi
+## 3. `question_types` – Loại câu hỏi
 
-### Bảng `exams`
-
-```sql
-CREATE TABLE exams (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255),
-    description TEXT,
-    total_questions INTEGER,
-    strategy ENUM('random', 'manual') NOT NULL,
-    created_by INTEGER REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Bảng `exam_questions` (Snapshot câu hỏi)
-
-```sql
-CREATE TABLE exam_questions (
-    id SERIAL PRIMARY KEY,
-    exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
-    original_question_id INTEGER,
-    content TEXT,
-    correct_answer TEXT,
-    difficulty VARCHAR(50),
-    topic VARCHAR(100),
-    question_type_id INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Bảng `exam_question_choices`
-
-```sql
-CREATE TABLE exam_question_choices (
-    id SERIAL PRIMARY KEY,
-    exam_question_id INTEGER REFERENCES exam_questions(id) ON DELETE CASCADE,
-    label CHAR(1),
-    content TEXT
-);
-```
+| Cột    | Kiểu dữ liệu   | Ghi chú                                          |
+| ------ | -------------- | ------------------------------------------------ |
+| `id`   | `SERIAL`       | Khóa chính                                       |
+| `name` | `VARCHAR(100)` | Tên loại câu hỏi (`single_choice`, `essay`, ...) |
 
 ---
 
-## 📝 4. Làm bài và kết quả
+## 4. `questions` – Câu hỏi gốc
 
-### Bảng `exam_attempts`
-
-```sql
-CREATE TABLE exam_attempts (
-    id SERIAL PRIMARY KEY,
-    exam_id INTEGER REFERENCES exams(id),
-    user_id INTEGER REFERENCES users(id),
-    started_at TIMESTAMP,
-    submitted_at TIMESTAMP,
-    score DECIMAL(5,2),
-    status ENUM('in_progress', 'submitted', 'reviewed') DEFAULT 'submitted',
-    reviewed_at TIMESTAMP
-);
-```
-
-### Bảng `exam_answers`
-
-```sql
-CREATE TABLE exam_answers (
-    id SERIAL PRIMARY KEY,
-    exam_attempt_id INTEGER REFERENCES exam_attempts(id) ON DELETE CASCADE,
-    exam_question_id INTEGER REFERENCES exam_questions(id),
-    selected_answer TEXT,
-    essay_content TEXT,
-    is_correct BOOLEAN
-);
-```
-
-### Bảng `review_histories`
-
-```sql
-CREATE TABLE review_histories (
-    id SERIAL PRIMARY KEY,
-    exam_attempt_id INTEGER REFERENCES exam_attempts(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id),
-    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    device_info TEXT,
-    ip_address VARCHAR(45)
-);
-```
+| Cột                | Kiểu dữ liệu                   | Ghi chú                        |
+| ------------------ | ------------------------------ | ------------------------------ |
+| `id`               | `SERIAL`                       | Khóa chính                     |
+| `content`          | `TEXT`                         | Nội dung câu hỏi               |
+| `correct_answer`   | `TEXT`                         | Đáp án đúng                    |
+| `difficulty`       | `ENUM('easy','medium','hard')` | Mức độ khó                     |
+| `topic`            | `VARCHAR(100)`                 | Chủ đề câu hỏi                 |
+| `section_id`       | `INTEGER`                      | FK đến `question_sections(id)` |
+| `question_type_id` | `INTEGER`                      | FK đến `question_types(id)`    |
+| `created_by`       | `INTEGER`                      | FK đến `users(id)`             |
+| `created_at`       | `TIMESTAMP`                    | Ngày tạo                       |
 
 ---
 
-## 📊 5. Tính điểm & thống kê (gợi ý xử lý)
+## 5. `question_media` – Media cho câu hỏi
 
-- **Tính điểm tự động:** chấm `is_correct = selected_answer == correct_answer`
-- **Các truy vấn thống kê:**
-  - Điểm trung bình theo đề.
-  - Số lượt thi.
-  - Tỉ lệ đúng theo mức độ, chủ đề, học viên.
-
----
-
-## 🛠️ 6. Khả năng mở rộng
-
-- **Version hóa:** đã thực hiện bằng cách snapshot toàn bộ nội dung câu hỏi vào `exam_questions`.
-- **Các module bổ sung có thể thêm:**
-  - `exam_question_orders`: random hóa thứ tự câu.
-  - Cột `anti_cheat_flags`, `browser_events` nếu cần chống gian lận.
+| Cột           | Kiểu dữ liệu                           | Ghi chú                              |
+| ------------- | -------------------------------------- | ------------------------------------ |
+| `id`          | `SERIAL`                               | Khóa chính                           |
+| `question_id` | `INTEGER`                              | FK đến `questions(id)`               |
+| `media_type`  | `ENUM('audio', 'image', 'transcript')` | Loại media                           |
+| `content`     | `TEXT`                                 | Nội dung (base64 / URL / transcript) |
 
 ---
 
-Index
+## 6. `question_choices` – Lựa chọn trả lời
 
--- 📌 USERS
-CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
+| Cột           | Kiểu dữ liệu | Ghi chú                   |
+| ------------- | ------------ | ------------------------- |
+| `id`          | `SERIAL`     | Khóa chính                |
+| `question_id` | `INTEGER`    | FK đến `questions(id)`    |
+| `label`       | `CHAR(1)`    | Nhãn lựa chọn: A, B, C, D |
+| `content`     | `TEXT`       | Nội dung lựa chọn         |
 
--- 📌 QUESTIONS
-CREATE INDEX IF NOT EXISTS idx_questions_section_id ON questions(section_id);
-CREATE INDEX IF NOT EXISTS idx_questions_question_type_id ON questions(question_type_id);
-CREATE INDEX IF NOT EXISTS idx_questions_created_by ON questions(created_by);
+---
 
--- 📌 QUESTION_CHOICES
-CREATE INDEX IF NOT EXISTS idx_question_choices_question_id ON question_choices(question_id);
+## 7. `exams` – Đề thi
 
--- 📌 QUESTION_MEDIA
-CREATE INDEX IF NOT EXISTS idx_question_media_question_id ON question_media(question_id);
+| Cột               | Kiểu dữ liệu              | Ghi chú            |
+| ----------------- | ------------------------- | ------------------ |
+| `id`              | `SERIAL`                  | Khóa chính         |
+| `title`           | `VARCHAR(255)`            | Tiêu đề đề thi     |
+| `description`     | `TEXT`                    | Mô tả ngắn         |
+| `total_questions` | `INTEGER`                 | Tổng số câu hỏi    |
+| `strategy`        | `ENUM('random','manual')` | Chiến lược tạo đề  |
+| `created_by`      | `INTEGER`                 | FK đến `users(id)` |
+| `created_at`      | `TIMESTAMP`               | Ngày tạo đề        |
 
--- 📌 QUESTION_SECTIONS
-CREATE INDEX IF NOT EXISTS idx_question_sections_name ON question_sections(name);
+---
 
--- 📌 QUESTION_TYPES
-CREATE INDEX IF NOT EXISTS idx_question_types_name ON question_types(name);
+## 8. `exam_questions` – Snapshot câu hỏi trong đề
 
--- 📌 EXAMS
-CREATE INDEX IF NOT EXISTS idx_exams_created_by ON exams(created_by);
+| Cột                    | Kiểu dữ liệu                   | Ghi chú                   |
+| ---------------------- | ------------------------------ | ------------------------- |
+| `id`                   | `SERIAL`                       | Khóa chính                |
+| `exam_id`              | `INTEGER`                      | FK đến `exams(id)`        |
+| `original_question_id` | `INTEGER`                      | ID câu hỏi gốc (nếu có)   |
+| `content`              | `TEXT`                         | Nội dung snapshot câu hỏi |
+| `correct_answer`       | `TEXT`                         | Đáp án snapshot           |
+| `difficulty`           | `ENUM('easy','medium','hard')` | Độ khó                    |
+| `topic`                | `VARCHAR(100)`                 | Chủ đề                    |
+| `question_type_id`     | `INTEGER`                      | Loại câu hỏi              |
+| `created_at`           | `TIMESTAMP`                    | Ngày snapshot             |
 
--- 📌 EXAM_QUESTIONS
-CREATE INDEX IF NOT EXISTS idx_exam_questions_exam_id ON exam_questions(exam_id);
-CREATE INDEX IF NOT EXISTS idx_exam_questions_original_qid ON exam_questions(original_question_id);
+---
 
--- 📌 EXAM_QUESTION_CHOICES
-CREATE INDEX IF NOT EXISTS idx_exam_question_choices_eqid ON exam_question_choices(exam_question_id);
+## 9. `exam_question_choices` – Lựa chọn snapshot
 
--- 📌 EXAM_ATTEMPTS
-CREATE INDEX IF NOT EXISTS idx_exam_attempts_user_id ON exam_attempts(user_id);
-CREATE INDEX IF NOT EXISTS idx_exam_attempts_exam_id ON exam_attempts(exam_id);
+| Cột                | Kiểu dữ liệu | Ghi chú                     |
+| ------------------ | ------------ | --------------------------- |
+| `id`               | `SERIAL`     | Khóa chính                  |
+| `exam_question_id` | `INTEGER`    | FK đến `exam_questions(id)` |
+| `label`            | `CHAR(1)`    | A, B, C, D                  |
+| `content`          | `TEXT`       | Nội dung                    |
 
--- 📌 EXAM_ANSWERS
-CREATE INDEX IF NOT EXISTS idx_exam_answers_attempt_id ON exam_answers(exam_attempt_id);
-CREATE INDEX IF NOT EXISTS idx_exam_answers_question_id ON exam_answers(exam_question_id);
+---
 
--- 📌 REVIEW_HISTORIES
-CREATE INDEX IF NOT EXISTS idx_review_histories_attempt_id ON review_histories(exam_attempt_id);
-CREATE INDEX IF NOT EXISTS idx_review_histories_user_id ON review_histories(user_id);
+## 10. `exam_attempts` – Lượt làm bài
+
+| Cột            | Kiểu dữ liệu                                 | Ghi chú               |
+| -------------- | -------------------------------------------- | --------------------- |
+| `id`           | `SERIAL`                                     | Khóa chính            |
+| `exam_id`      | `INTEGER`                                    | FK đến `exams(id)`    |
+| `user_id`      | `INTEGER`                                    | FK đến `users(id)`    |
+| `started_at`   | `TIMESTAMP`                                  | Bắt đầu làm bài       |
+| `submitted_at` | `TIMESTAMP`                                  | Thời điểm nộp bài     |
+| `score`        | `DECIMAL(5,2)`                               | Điểm số (nếu đã chấm) |
+| `status`       | `ENUM('in_progress','submitted','reviewed')` | Trạng thái làm bài    |
+| `reviewed_at`  | `TIMESTAMP`                                  | Thời gian chấm        |
+
+---
+
+## 11. `exam_answers` – Câu trả lời
+
+| Cột                | Kiểu dữ liệu | Ghi chú                     |
+| ------------------ | ------------ | --------------------------- |
+| `id`               | `SERIAL`     | Khóa chính                  |
+| `exam_attempt_id`  | `INTEGER`    | FK đến `exam_attempts(id)`  |
+| `exam_question_id` | `INTEGER`    | FK đến `exam_questions(id)` |
+| `selected_answer`  | `TEXT`       | Câu chọn của thí sinh       |
+| `essay_content`    | `TEXT`       | Nội dung tự luận            |
+| `is_correct`       | `BOOLEAN`    | Trả lời đúng hay sai        |
+
+---
+
+## 12. `review_histories` – Lịch sử xem lại bài
+
+| Cột               | Kiểu dữ liệu  | Ghi chú                    |
+| ----------------- | ------------- | -------------------------- |
+| `id`              | `SERIAL`      | Khóa chính                 |
+| `exam_attempt_id` | `INTEGER`     | FK đến `exam_attempts(id)` |
+| `user_id`         | `INTEGER`     | FK đến `users(id)`         |
+| `viewed_at`       | `TIMESTAMP`   | Thời gian xem lại          |
+| `device_info`     | `TEXT`        | Thông tin thiết bị         |
+| `ip_address`      | `VARCHAR(45)` | Địa chỉ IP                 |
+
+---

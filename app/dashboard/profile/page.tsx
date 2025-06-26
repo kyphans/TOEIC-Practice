@@ -54,33 +54,33 @@ export default function Profile() {
   };
 
   return (
-    <div className='space-y-8 p-6'>
+    <div className='space-y-8 p-4'>
       <div className='brutalist-container'>
         <h1 className='text-3xl font-black mb-4'>Your Profile</h1>
         <p className='text-lg'>Manage your account settings and preferences.</p>
       </div>
 
       <Tabs defaultValue='profile' className='w-full'>
-        <TabsList className='grid grid-cols-4 mb-8'>
+        <TabsList className='grid grid-cols-4 gap-1'>
           <TabsTrigger
             value='profile'
             className='brutalist-button hover:text-blue-500 data-[state=active]:bg-blue-500 data-[state=active]:text-white'>
-            <User className='mr-2 h-4 w-4' /> Profile
+            <User className='h-4 w-4' /> Profile
           </TabsTrigger>
           <TabsTrigger
             value='password'
             className='brutalist-button hover:text-blue-500 data-[state=active]:bg-blue-500 data-[state=active]:text-white'>
-            <Lock className='mr-2 h-4 w-4' /> Password
+            <Lock className='h-4 w-4' /> Password
           </TabsTrigger>
           <TabsTrigger
             value='notifications'
             className='brutalist-button hover:text-blue-500 data-[state=active]:bg-blue-500 data-[state=active]:text-white'>
-            <Bell className='mr-2 h-4 w-4' /> Notifications
+            <Bell className='h-4 w-4' /> Notifications
           </TabsTrigger>
           <TabsTrigger
             value='preferences'
             className='brutalist-button hover:text-blue-500 data-[state=active]:bg-blue-500 data-[state=active]:text-white'>
-            <Globe className='mr-2 h-4 w-4' /> Preferences
+            <Globe className='h-4 w-4' /> Preferences
           </TabsTrigger>
         </TabsList>
 

@@ -1,0 +1,128 @@
+---
+id: 1cfaf9e1-3b3e-4476-9d76-d0fa9614cd56
+---
+erDiagram
+
+users {
+  SERIAL id PK
+  VARCHAR clerk_id
+  VARCHAR name
+  VARCHAR email
+  TEXT password_hash
+  ENUM role
+  TIMESTAMP created_at
+}
+
+question_sections {
+  SERIAL id PK
+  VARCHAR code
+  VARCHAR name
+  ENUM section_name
+}
+
+question_types {
+  SERIAL id PK
+  VARCHAR name
+}
+
+questions {
+  SERIAL id PK
+  TEXT content
+  TEXT correct_answer
+  ENUM difficulty
+  VARCHAR topic
+  INTEGER section_id FK
+  INTEGER question_type_id FK
+  INTEGER created_by FK
+  TIMESTAMP created_at
+}
+
+question_media {
+  SERIAL id PK
+  INTEGER question_id FK
+  ENUM media_type
+  TEXT content
+}
+
+question_choices {
+  SERIAL id PK
+  INTEGER question_id FK
+  CHAR label
+  TEXT content
+}
+
+exams {
+  SERIAL id PK
+  VARCHAR title
+  TEXT description
+  INTEGER total_questions
+  ENUM strategy
+  ENUM difficulty
+  INTEGER created_by FK
+  TIMESTAMP created_at
+}
+
+exam_questions {
+  SERIAL id PK
+  INTEGER exam_id FK
+  INTEGER original_question_id
+  TEXT content
+  TEXT correct_answer
+  ENUM difficulty
+  VARCHAR topic
+  INTEGER question_type_id
+  TIMESTAMP created_at
+}
+
+exam_question_choices {
+  SERIAL id PK
+  INTEGER exam_question_id FK
+  CHAR label
+  TEXT content
+}
+
+exam_attempts {
+  SERIAL id PK
+  INTEGER exam_id FK
+  INTEGER user_id FK
+  TIMESTAMP started_at
+  TIMESTAMP submitted_at
+  DECIMAL score
+  ENUM status
+  TIMESTAMP reviewed_at
+}
+
+exam_answers {
+  SERIAL id PK
+  INTEGER exam_attempt_id FK
+  INTEGER exam_question_id FK
+  TEXT selected_answer
+  TEXT essay_content
+  BOOLEAN is_correct
+}
+
+review_histories {
+  SERIAL id PK
+  INTEGER exam_attempt_id FK
+  INTEGER user_id FK
+  TIMESTAMP viewed_at
+  TEXT device_info
+  VARCHAR ip_address
+}
+
+users ||--o{ questions : creates
+users ||--o{ exams : creates
+users ||--o{ exam_attempts : takes
+users ||--o{ review_histories : views
+
+question_sections ||--o{ questions : contains
+question_types ||--o{ questions : has
+questions ||--o{ question_media : includes
+questions ||--o{ question_choices : has
+
+exams ||--o{ exam_questions : contains
+exam_questions ||--o{ exam_question_choices : has
+exam_questions ||--o{ exam_answers : answered_in
+
+exam_attempts ||--o{ exam_answers : includes
+exam_attempts ||--o{ review_histories : logged_in

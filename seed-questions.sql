@@ -1,12 +1,12 @@
 -- Seed for question_sections with explicit IDs
-INSERT INTO question_sections (id, code, name) VALUES
-  (1, 'part1', 'Part 1'),
-  (2, 'part2', 'Part 2'),
-  (3, 'part3', 'Part 3'),
-  (4, 'part4', 'Part 4'),
-  (5, 'part5', 'Part 5'),
-  (6, 'part6', 'Part 6'),
-  (7, 'part7', 'Part 7');
+INSERT INTO question_sections (id, code, name, section_name) VALUES
+  (1, 'part1', 'Part 1', 'Listening'),
+  (2, 'part2', 'Part 2', 'Listening'),
+  (3, 'part3', 'Part 3', 'Listening'),
+  (4, 'part4', 'Part 4', 'Listening'),
+  (5, 'part5', 'Part 5', 'Reading'),
+  (6, 'part6', 'Part 6', 'Reading'),
+  (7, 'part7', 'Part 7', 'Reading');
 
 -- Seed for question_types with explicit IDs
 INSERT INTO question_types (id, name) VALUES

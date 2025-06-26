@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
-import { ExamDetailResponse, ExamSection, ExamQuestion } from '@/types/exams.type';
+import { ExamDetailResponse, ExamSection, ExamQuestion, SectionName, PartCode } from '@/types/exams.type';
 
-const SECTION_TIME: Record<'Listening' | 'Reading', number> = {
+const SECTION_TIME: Record<SectionName, number> = {
   Listening: 2700,
   Reading: 4500,
 };
@@ -54,7 +54,7 @@ export async function GET(req: Request, { params }: { params: { exam_id: string 
       originalIds.length
         ? sql`SELECT question_id, media_type, content FROM question_media WHERE question_id = ANY(${originalIds})`
         : [],
-      sql`SELECT id, code FROM question_sections`,
+      sql`SELECT id, code, name, section_name FROM question_sections`,
     ]);
 
     // 5. Tạo map để tra cứu nhanh
@@ -70,15 +70,20 @@ export async function GET(req: Request, { params }: { params: { exam_id: string 
       mediaMap.get(m.question_id)![m.media_type] = m.content;
     });
 
-    const sectionMap: Record<number, 'Listening' | 'Reading'> = {};
-    sectionRows.forEach(({ id, code }) => {
-      sectionMap[id] = code.toLowerCase().includes('listen') ? 'Listening' : 'Reading';
+    const sectionMap: Record<number, { section_id: number; partCode: PartCode; sectionName: SectionName }> = {};
+    sectionRows.forEach(({ id, code, section_name }) => {
+      sectionMap[id] = {
+        section_id: id as number,
+        partCode: code as PartCode,
+        sectionName: section_name as SectionName,
+      };
     });
 
     // 6. Biến đổi câu hỏi
     const questionList: ExamQuestion[] = questions.map(q => {
       const opts = (choiceMap.get(q.id) || []).sort((a, b) => a.label.localeCompare(b.label));
       const media = mediaMap.get(q.original_question_id) || {};
+      const sectionInfo = sectionMap[q.section_id];
       return {
         id: q.id,
         question: q.content,
@@ -86,18 +91,28 @@ export async function GET(req: Request, { params }: { params: { exam_id: string 
         image: media.image,
         audio: media.audio,
         transcript: media.transcript,
-        section: sectionMap[q.section_id] || 'Reading',
-        part_code: q.part_code || '',
+        section: sectionInfo.sectionName,
+        part_code: sectionInfo.partCode,
       };
     });
 
-    // 7. Chia theo phần
-    const sectionNames: ('Listening' | 'Reading')[] = ['Listening', 'Reading'];
-    const sections: ExamSection[] = sectionNames.map(sec => ({
-      name: sec,
-      time: SECTION_TIME[sec],
-      questions: questionList.filter(q => q.section === sec),
-    }));
+    // 7. Group questions by section (Reading/Listening)
+    const sectionGroups: Record<SectionName, ExamQuestion[]> = {
+      Listening: [],
+      Reading: [],
+    };
+    questionList.forEach(q => {
+      sectionGroups[q.section].push(q);
+    });
+
+    // Tạo sections chỉ với các section có câu hỏi
+    const sections: ExamSection[] = Object.entries(sectionGroups)
+      .filter(([, questions]) => questions.length > 0)
+      .map(([sectionName, questions]) => ({
+        name: sectionName as SectionName,
+        time: SECTION_TIME[sectionName as SectionName] || 0,
+        questions,
+      }));
 
     const response: ExamDetailResponse = {
       exam_attempt_id: attempt.id,

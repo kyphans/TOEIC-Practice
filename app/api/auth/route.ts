@@ -22,6 +22,7 @@ export async function POST(req: Request) {
 
   // Tạo user mới
   const newUser = {
+    clerk_id: userId,
     name: user.firstName + (user.lastName ? ' ' + user.lastName : ''),
     email: user.emailAddresses?.[0]?.emailAddress || '',
     role: 'student',
