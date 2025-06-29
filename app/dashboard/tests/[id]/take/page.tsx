@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { fetcher } from '@/lib/query'
 import type { ExamDetailResponse } from '@/types/exams.type'
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import useSWR from 'swr'
+import { mutate } from 'swr'
 import { QuestionCard } from "../../../../../components/QuestionCard"
 
 export default function TakeTest({ params }: { params: { id: string } }) {
@@ -26,9 +27,7 @@ export default function TakeTest({ params }: { params: { id: string } }) {
     `/api/exams/${testId}`,
     fetcher,
     {
-      revalidateIfStale: false,
       revalidateOnFocus: false,
-      revalidateOnReconnect: false
     }
   );
 
@@ -73,7 +72,7 @@ export default function TakeTest({ params }: { params: { id: string } }) {
 
   // ====== Memoized Data ======
   // Lấy answers từ localStorage
-  const answers = useMemo(() => getAnswersByTestId(testId), [testId, getAnswersByTestId])
+  const answers = getAnswersByTestId(testId);
 
   // Tính toán danh sách câu hỏi
   const allQuestions = useMemo(() => 
@@ -126,9 +125,12 @@ export default function TakeTest({ params }: { params: { id: string } }) {
 
   // ====== Handler Functions ======
   // Chọn đáp án cho câu hỏi
-  const handleSelectAnswer = (questionId: string, answer: string) => {
-    setAnswer(`${testId}-${questionId}`, answer)
-  }
+  const handleSelectAnswer = useCallback((questionId: string, answer: string) => {
+    const currentAnswer = answers[questionId]
+    if (currentAnswer !== answer) {
+      setAnswer(`${testId}-${questionId}`, answer)
+    }
+  }, [testId, setAnswer, answers])
 
   // Mở modal xác nhận submit
   const handleOpenSubmitModal = () => {
@@ -142,14 +144,30 @@ export default function TakeTest({ params }: { params: { id: string } }) {
     handleSubmitTest()
   }
   // Xử lý submit bài thi
-  const handleSubmitTest = () => {
-    if (!answers) return
-    console.log('submitted test', answers)
-    // Có thể cần sửa lại checkAnswers nếu muốn dùng dữ liệu thật
-    // const { correctCount, score } = checkAnswers(testId, answers)
-    clearAnswers()
-    // clearTimer(testId)
-    router.push(`/dashboard/tests/${testId}/results`)
+  const handleSubmitTest = async () => {
+    if (!answers || !examData.exam_attempt_id) return;
+    try {
+      const res = await fetch(`/api/exams/${testId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exam_attempt_id: examData.exam_attempt_id,
+          answers: Object.fromEntries(
+            Object.entries(answers).map(([k, v]) => [k.replace(`${testId}-`, ''), v])
+          )
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        clearAnswers();
+        // clearTimer(testId)
+        router.replace(`/dashboard/tests/${testId}/results?score=${data.score}`);
+      } else {
+        alert(data.error || 'Submit failed');
+      }
+    } catch (e) {
+      alert('Submit failed');
+    }
   }
 
   // ====== Render ======

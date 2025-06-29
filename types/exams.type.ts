@@ -64,4 +64,26 @@ export type ExamDetailResponse = {
   id: number;
   name: string;
   sections: ExamSection[];
+};
+
+export type TestAttemptHistoryItem = {
+  id: number;
+  name: string;
+  date: string;
+  score: number;
+  totalScore: number;
+  time: string; // HH:mm:ss
+};
+
+export type TestAttemptSummary = {
+  totalTests: number;
+  avgScorePercent: number;
+  lastTestDate: string | null;
+};
+
+export type TestAttemptProgressItem = {
+  id: number;
+  date: string;
+  score: number;
+  totalScore: number;
 }; 

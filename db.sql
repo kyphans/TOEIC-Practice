@@ -24,6 +24,10 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'section_name') THEN
         CREATE TYPE section_name AS ENUM ('Listening', 'Reading');
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'display_order_type') THEN
+        CREATE TYPE display_order_type AS ENUM ('random', 'original');
+    END IF;
 END$$;
 
 -- USERS
@@ -90,14 +94,16 @@ CREATE TABLE IF NOT EXISTS exams (
     strategy exam_strategy NOT NULL,
     section_names TEXT,
     created_by INTEGER REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    display_order display_order_type DEFAULT 'original',
+    section_times TEXT
 );
 
 -- EXAM QUESTIONS (snapshot)
 CREATE TABLE IF NOT EXISTS exam_questions (
     id SERIAL PRIMARY KEY,
     exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
-    original_question_id INTEGER,
+    original_question_id INTEGER REFERENCES questions(id),
     content TEXT,
     correct_answer TEXT,
     difficulty difficulty_level,
@@ -118,13 +124,14 @@ CREATE TABLE IF NOT EXISTS exam_question_choices (
 -- EXAM ATTEMPTS
 CREATE TABLE IF NOT EXISTS exam_attempts (
     id SERIAL PRIMARY KEY,
-    exam_id INTEGER REFERENCES exams(id),
+    exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES users(id),
     started_at TIMESTAMP,
     submitted_at TIMESTAMP,
     score DECIMAL(5,2),
     status attempt_status DEFAULT 'submitted',
-    reviewed_at TIMESTAMP
+    reviewed_at TIMESTAMP,
+    question_order TEXT
 );
 
 -- EXAM ANSWERS
@@ -134,7 +141,8 @@ CREATE TABLE IF NOT EXISTS exam_answers (
     exam_question_id INTEGER REFERENCES exam_questions(id),
     selected_answer TEXT,
     essay_content TEXT,
-    is_correct BOOLEAN
+    is_correct BOOLEAN,
+    CONSTRAINT exam_answers_attempt_question_unique UNIQUE (exam_attempt_id, exam_question_id)
 );
 
 -- REVIEW HISTORIES

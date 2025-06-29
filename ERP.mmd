@@ -101,6 +101,7 @@ exam_answers {
   TEXT selected_answer
   TEXT essay_content
   BOOLEAN is_correct
+  UNIQUE (exam_attempt_id, exam_question_id)
 }
 
 review_histories {
@@ -130,3 +131,4 @@ exam_attempts ||--o{ exam_answers : includes
 exam_attempts ||--o{ review_histories : logged_in
 
 question_sections ||--o{ exam_questions : contains_section
+exams ||--o{ exam_attempts : "ON DELETE CASCADE"

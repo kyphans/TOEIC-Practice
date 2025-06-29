@@ -294,6 +294,7 @@ export async function GET(req: Request) {
             e.difficulty,
             e.section_names,
             e.strategy,
+            e.section_times,
             e.created_by,
             e.created_at
           FROM exams e
@@ -314,6 +315,7 @@ export async function GET(req: Request) {
             e.difficulty,
             e.section_names,
             e.strategy,
+            e.section_times,
             e.created_by,
             e.created_at
           FROM exams e
@@ -325,17 +327,31 @@ export async function GET(req: Request) {
     }
     console.log('[GET /api/exams] Exams fetched:', exams.rows.length);
     // Format data
-    const formattedExams = exams.rows.map((e: any) => ({
-      id: e.id,
-      title: e.title,
-      description: e.description,
-      totalQuestions: e.total_questions,
-      difficulty: e.difficulty ?? Difficulty.Easy,
-      section_names: e.section_names ? e.section_names.split(',').map((s: string) => s.trim() as SectionName) : [],
-      strategy: e.strategy,
-      createdBy: e.created_by,
-      createdAt: e.created_at,
-    }));
+    const formattedExams = exams.rows.map((e: any) => {
+      // Parse section_names và section_times thành mảng sections
+      const sectionNames = e.section_names ? e.section_names.split(',').map((s: string) => s.trim()) : [];
+      const sectionTimes = (typeof e.section_times === 'string' && e.section_times)
+        ? e.section_times.split(',').map((s: string) => {
+            const n = parseInt(s.trim(), 10);
+            return isNaN(n) ? null : n;
+          })
+        : [];
+      const sections = sectionNames.map((name: string, idx: number) => ({
+        name,
+        time: sectionTimes[idx] ?? null,
+      }));
+      return {
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        totalQuestions: e.total_questions,
+        difficulty: e.difficulty ?? Difficulty.Easy,
+        strategy: e.strategy,
+        sections,
+        createdBy: e.created_by,
+        createdAt: e.created_at,
+      };
+    });
 
     let responseData: any;
     if (group) {

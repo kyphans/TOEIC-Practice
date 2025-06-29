@@ -44,7 +44,7 @@ export default function DashboardLayout({
   if (!isLoaded || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-2xl font-bold">Loading...</div>
+        <div className="text-2xl font-bold">Loading App...</div>
       </div>
     )
   }

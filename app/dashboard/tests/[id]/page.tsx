@@ -53,7 +53,7 @@ export default function TestDetails({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4">
       <div className="flex items-center mb-6">
         <Link href="/dashboard/tests" className="inline-flex items-center text-primary font-bold">
           <ArrowLeft className="mr-2" /> Back to Tests

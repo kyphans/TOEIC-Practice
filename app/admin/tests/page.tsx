@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR from "swr"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
@@ -25,7 +25,27 @@ function getDifficultyClass(difficulty: string) {
 export default function TestManagement() {
   const [page, setPage] = useState(1)
   const pageSize = 10
-  const { data, error, isLoading } = useSWR<ExamsResponse>(`/api/exams?index=${page}&pageSize=${pageSize}`, fetcher)
+  const [deletingId, setDeletingId] = useState<number | string | null>(null)
+  const { data, error, isLoading, mutate } = useSWR<ExamsResponse>(`/api/exams?index=${page}&pageSize=${pageSize}`, fetcher)
+
+  // Hàm xóa exam
+  const handleDelete = useCallback(async (id: number | string) => {
+    if (!window.confirm("Are you sure you want to delete this exam? This action cannot be undone.")) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/exams/${id}`, { method: 'DELETE' });
+      if (res.status === 204) {
+        mutate(); // reload danh sách
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete exam.');
+      }
+    } catch (err) {
+      alert('Failed to delete exam.');
+    } finally {
+      setDeletingId(null);
+    }
+  }, [mutate]);
 
   return (
     <div>
@@ -42,21 +62,29 @@ export default function TestManagement() {
       {error && <div className="text-red-500">Failed to load exams.</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data?.exams?.map((exam) => (
-          <ExamCard
-            key={exam.id}
-            data={{
-              id: exam.id,
-              name: exam.title,
-              description: exam.description || '',
-              difficulty: exam.difficulty,
-              time: 45, // Placeholder, update if you have time info
-              questions: exam.totalQuestions,
-              sections: exam.section_names,
-            }}
-            getDifficultyClass={getDifficultyClass}
-          />
-        ))}
+        {data?.exams?.map((exam) => {
+          // Tính tổng thời gian nếu có
+          const totalTime = Array.isArray(exam.sections)
+            ? exam.sections.reduce((sum: number, s: { time: number | null }) => sum + (typeof s.time === 'number' && !isNaN(s.time) ? s.time : 0), 0)
+            : null;
+          return (
+            <ExamCard
+              key={exam.id}
+              data={{
+                id: exam.id,
+                name: exam.title,
+                description: exam.description || '',
+                difficulty: exam.difficulty,
+                time: typeof totalTime === 'number' && !isNaN(totalTime) ? totalTime : '',
+                questions: exam.totalQuestions,
+                sections: exam.sections,
+              }}
+              getDifficultyClass={getDifficultyClass}
+              onDelete={handleDelete}
+              deletingId={deletingId}
+            />
+          );
+        })}
       </div>
 
       {/* Pagination controls */}

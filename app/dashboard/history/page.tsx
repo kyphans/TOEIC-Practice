@@ -3,64 +3,20 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, TrendingUp, Eye } from "lucide-react"
+import useSWR from 'swr';
+import { TestAttemptHistoryItem, TestAttemptSummary, TestAttemptProgressItem } from '@/types/exams.type';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function TestHistory() {
-  // Mock test history data
-  const testHistory = [
-    {
-      id: 1,
-      name: "TOEIC Test 1",
-      date: "2023-05-15",
-      score: 750,
-      totalScore: 990,
-      time: "01:45:30",
-    },
-    {
-      id: 2,
-      name: "TOEIC Test 2",
-      date: "2023-05-10",
-      score: 720,
-      totalScore: 990,
-      time: "01:52:15",
-    },
-    {
-      id: 3,
-      name: "TOEIC Listening Practice",
-      date: "2023-05-05",
-      score: 420,
-      totalScore: 495,
-      time: "00:42:10",
-    },
-    {
-      id: 4,
-      name: "TOEIC Reading Practice",
-      date: "2023-04-28",
-      score: 380,
-      totalScore: 495,
-      time: "01:10:45",
-    },
-    {
-      id: 5,
-      name: "TOEIC Quick Test",
-      date: "2023-04-20",
-      score: 480,
-      totalScore: 600,
-      time: "00:55:30",
-    },
-    {
-      id: 6,
-      name: "TOEIC Test 3",
-      date: "2023-04-15",
-      score: 680,
-      totalScore: 990,
-      time: "01:48:20",
-    },
-  ]
+  // SWR fetch
+  const { data: historyData } = useSWR<{ history: TestAttemptHistoryItem[] }>('/api/test-attempts/history', fetcher);
+  const { data: summaryData } = useSWR<{ summary: TestAttemptSummary }>('/api/test-attempts/summary', fetcher);
+  const { data: progressData } = useSWR<{ progress: TestAttemptProgressItem[] }>('/api/test-attempts/progress', fetcher);
 
-  // Calculate average score
-  const totalScorePercentages = testHistory.map((test) => (test.score / test.totalScore) * 100)
-  const averageScorePercentage =
-    totalScorePercentages.reduce((sum, score) => sum + score, 0) / totalScorePercentages.length
+  const testHistory = historyData?.history || [];
+  const summary = summaryData?.summary || { totalTests: 0, avgScorePercent: 0, lastTestDate: null };
+  const progress = progressData?.progress || [];
 
   return (
     <div className="space-y-8 p-4">
@@ -74,19 +30,19 @@ export default function TestHistory() {
         {[
           {
             title: "Tests Taken",
-            value: testHistory.length.toString(),
+            value: summary.totalTests.toString(),
             icon: Calendar,
             color: "bg-primary",
           },
           {
             title: "Average Score",
-            value: `${Math.round(averageScorePercentage)}%`,
+            value: `${summary.avgScorePercent}%`,
             icon: TrendingUp,
             color: "bg-primary",
           },
           {
             title: "Last Test",
-            value: testHistory[0].date,
+            value: summary.lastTestDate || '-',
             icon: Clock,
             color: "bg-primary",
           },
@@ -111,11 +67,11 @@ export default function TestHistory() {
           <table className="w-full border-4 border-black">
             <thead>
               <tr className="bg-primary">
-                <th className="border-4 border-black p-3 text-left text-white text-white">Test Name</th>
-                <th className="border-4 border-black p-3 text-left text-white text-white">Date</th>
-                <th className="border-4 border-black p-3 text-left text-white text-white">Score</th>
-                <th className="border-4 border-black p-3 text-left text-white text-white">Time Taken</th>
-                <th className="border-4 border-black p-3 text-left text-white text-white">Actions</th>
+                <th className="border-4 border-black p-3 text-left text-white">Test Name</th>
+                <th className="border-4 border-black p-3 text-left text-white">Date</th>
+                <th className="border-4 border-black p-3 text-left text-white">Score</th>
+                <th className="border-4 border-black p-3 text-left text-white">Time Taken</th>
+                <th className="border-4 border-black p-3 text-left text-white">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -151,18 +107,15 @@ export default function TestHistory() {
         <h2 className="text-2xl font-black mb-4">Your Progress</h2>
         <div className="h-64 border-4 border-black p-4">
           <div className="h-full flex items-end">
-            {testHistory
-              .slice()
-              .reverse()
-              .map((test, index) => {
-                const percentage = (test.score / test.totalScore) * 100
-                return (
-                  <div key={test.id} className="flex-1 flex flex-col items-center justify-end h-full">
-                    <div className="w-4/5 bg-primary" style={{ height: `${percentage}%` }}></div>
-                    <div className="mt-2 text-xs font-bold transform -rotate-45 origin-top-left">{test.date}</div>
-                  </div>
-                )
-              })}
+            {progress.map((test, index) => {
+              const percentage = (test.score / test.totalScore) * 100;
+              return (
+                <div key={test.id} className="flex-1 flex flex-col items-center justify-end h-full">
+                  <div className="w-4/5 bg-primary" style={{ height: `${percentage}%` }}></div>
+                  <div className="mt-2 text-xs font-bold transform -rotate-45 origin-top-left">{test.date}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

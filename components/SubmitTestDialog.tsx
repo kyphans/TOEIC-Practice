@@ -67,7 +67,7 @@ export function SubmitTestDialog({
               unansweredQuestions.map((q) => (
                 <span
                   key={q.id}
-                  className='inline-block px-1 rounded brutalist-button-hover text-xs font-bold border border-black bg-red-100 text-white'>
+                  className='inline-block px-1 rounded brutalist-button-accent text-xs font-bold border border-black bg-red-100 text-white'>
                   {q.id}
                 </span>
               ))

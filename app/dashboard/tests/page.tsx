@@ -47,21 +47,27 @@ export default function Tests() {
           <div key={key} className="space-y-4">
             <h2 className="text-2xl font-black">{label} Tests</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {data[key].map((exam: any) => (
-                <ExamCard
-                  key={exam.id}
-                  data={{
-                    id: exam.id,
-                    name: exam.title,
-                    description: exam.description || '',
-                    difficulty: exam.difficulty,
-                    time: 45, // Placeholder, update if you have time info
-                    questions: exam.totalQuestions,
-                    sections: exam.section_names,
-                  }}
-                  getDifficultyClass={getDifficultyClass}
-                />
-              ))}
+              {data[key].map((exam: any) => {
+                // Tính tổng thời gian nếu có
+                const totalTime = Array.isArray(exam.sections)
+                  ? exam.sections.reduce((sum: number, s: { time: number | null }) => sum + (typeof s.time === 'number' && !isNaN(s.time) ? s.time : 0), 0)
+                  : null;
+                return (
+                  <ExamCard
+                    key={exam.id}
+                    data={{
+                      id: exam.id,
+                      name: exam.title,
+                      description: exam.description || '',
+                      difficulty: exam.difficulty,
+                      time: totalTime || null,
+                      questions: exam.totalQuestions,
+                      sections: exam.sections,
+                    }}
+                    getDifficultyClass={getDifficultyClass}
+                  />
+                );
+              })}
             </div>
           </div>
         )

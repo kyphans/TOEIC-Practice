@@ -80,10 +80,12 @@
 | `title`           | `VARCHAR(255)`            | Tiêu đề đề thi     |
 | `description`     | `TEXT`                    | Mô tả ngắn         |
 | `total_questions` | `INTEGER`                 | Tổng số câu hỏi    |
-| `strategy`        | `ENUM('random','manual')` | Chiến lược tạo đề  |
+| `strategy`        | `ENUM('random','manual')` | Chiến lược tạo đề (cách chọn câu hỏi khi tạo đề) |
 | `section_names`   | `TEXT`                    | Danh sách section  |
 | `created_by`      | `INTEGER`                 | FK đến `users(id)` |
 | `created_at`      | `TIMESTAMP`               | Ngày tạo đề        |
+| `display_order`   | `ENUM('random','original')` | Cách sắp xếp câu hỏi khi hiển thị đề thi cho thí sinh (random: ngẫu nhiên, original: theo thứ tự gốc) |
+| `section_times`   | `TEXT`                    | Thời gian làm bài cho từng phần, lưu dạng "1500,2000" (ví dụ: Reading 1500 giây, Listening 2000 giây) |
 
 ---
 
@@ -140,6 +142,8 @@
 | `selected_answer`  | `TEXT`       | Câu chọn của thí sinh       |
 | `essay_content`    | `TEXT`       | Nội dung tự luận            |
 | `is_correct`       | `BOOLEAN`    | Trả lời đúng hay sai        |
+
+**UNIQUE:** (`exam_attempt_id`, `exam_question_id`)
 
 ---
 
